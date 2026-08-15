@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customer Relationship Engine</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+<style>
+:root{
+  --brand:#0856c3;
+  --brand-dark:#063f8f;
+  --brand-darker:#042a63;
+  --brand-mid:#2e78d6;
+  --accent:#d4f0f7;
+  --accent-mid:#a9e1ee;
+  --accent-soft:#eef9fc;
+  --bg:#eef5fb;
+  --surface:#ffffff;
+  --surface-alt:#f4f9fd;
+  --border:#d3e6f4;
+  --text:#0b2540;
+  --text-muted:#5a7691;
+  --text-soft:#8ba6bd;
+  --success:#0a9d6e;
+  --warning:#d69a12;
+  --danger:#d64545;
+  --k1:#0a9d6e; --k2:#d69a12; --k3:#e07b1f; --k4:#d6592f; --k5:#d64545;
+  --shadow-sm:0 1px 2px rgba(8,86,195,.06),0 1px 1px rgba(8,86,195,.04);
+  --shadow-md:0 4px 14px rgba(8,86,195,.08),0 2px 4px rgba(8,86,195,.05);
+  --shadow-lg:0 12px 32px rgba(8,86,195,.12),0 4px 10px rgba(8,86,195,.05);
+  --radius-sm:6px; --radius:10px; --radius-lg:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,'Roboto','Helvetica Neue',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.5;
+  font-size:14px;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ===================== HEADER ===================== */
+.app-header{
+  background:linear-gradient(135deg,var(--brand-dark) 0%,var(--brand) 55%,var(--brand-mid) 100%);
+  color:#fff;
+  padding:18px 28px;
+  box-shadow:var(--shadow-md);
+  position:sticky;top:0;z-index:50;
+}
+.header-inner{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-logo{
+  width:48px;height:48px;border-radius:12px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-mid));
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;color:var(--brand-dark);font-size:20px;letter-spacing:-1px;
+  box-shadow:0 2px 10px rgba(212,240,247,.5);
+}
+.brand-text h1{font-size:20px;font-weight:700;letter-spacing:-.2px}
+.brand-text p{font-size:12px;opacity:.85;margin-top:2px}
+.header-actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 16px;border:none;border-radius:8px;cursor:pointer;
+  font-size:13px;font-weight:600;transition:all .15s;
+  font-family:inherit;
+}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--accent);color:var(--brand-darker)}
+.btn-primary:hover:not(:disabled){background:#fff;transform:translateY(-1px)}
+.btn-light{background:rgba(255,255,255,.15);color:#fff;backdrop-filter:blur(8px)}
+.btn-light:hover:not(:disabled){background:rgba(255,255,255,.25)}
+.btn-outline{background:transparent;color:var(--text);border:1.5px solid var(--border)}
+.btn-outline:hover:not(:disabled){background:var(--surface-alt);border-color:var(--brand)}
+.btn-sm{padding:6px 12px;font-size:12px}
+
+/* ===================== LAYOUT ===================== */
+.container{max-width:1500px;margin:0 auto;padding:24px 28px}
+
+/* ===================== UPLOAD ===================== */
+.upload-intro{
+  background:var(--surface);border-radius:var(--radius-lg);padding:22px 26px;
+  margin-bottom:18px;box-shadow:var(--shadow-sm);border:1px solid var(--border);
+}
+.upload-intro h2{font-size:19px;color:var(--brand-darker);margin-bottom:6px}
+.upload-intro p{color:var(--text-muted);font-size:13px;line-height:1.6}
+.upload-intro code{background:var(--accent-soft);padding:1px 6px;border-radius:4px;color:var(--brand-dark);font-weight:600}
+
+.slot-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:14px;margin-bottom:18px;
+}
+.slot-card{
+  background:var(--surface);border:2px dashed var(--border);border-radius:var(--radius);
+  padding:18px;transition:all .2s;position:relative;
+}
+.slot-card.required{border-color:var(--brand-mid)}
+.slot-card.filled{border-style:solid;border-color:var(--success);background:linear-gradient(180deg,#fff,var(--accent-soft))}
+.slot-card.dragging{border-color:var(--brand);background:var(--accent-soft)}
+.slot-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
+.slot-title{font-size:13.5px;font-weight:700;color:var(--text)}
+.slot-badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:2px 8px;border-radius:10px}
+.slot-badge.req{background:#fde9e5;color:var(--danger)}
+.slot-badge.opt{background:var(--accent-soft);color:var(--brand-dark)}
+.slot-desc{font-size:11.5px;color:var(--text-muted);margin-bottom:10px;line-height:1.5}
+.slot-status{font-size:12px;padding:8px 10px;border-radius:6px;background:var(--surface-alt);color:var(--text-muted);display:flex;align-items:center;gap:6px}
+.slot-status.ok{background:#e5f6ef;color:var(--success);font-weight:600}
+.slot-status.err{background:#fdeceb;color:var(--danger);font-weight:600}
+.slot-input{display:none}
+.slot-pick{
+  margin-top:8px;width:100%;padding:8px;border-radius:7px;border:1px solid var(--border);
+  background:var(--surface-alt);color:var(--brand-dark);font-weight:600;font-size:12px;cursor:pointer;text-align:center;
+}
+.slot-pick:hover{background:var(--accent-soft);border-color:var(--brand)}
+
+.upload-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:22px}
+.upload-hint{font-size:11.5px;color:var(--text-soft)}
+
+.progress-card{
+  background:var(--surface);border-radius:var(--radius);padding:20px;
+  box-shadow:var(--shadow-md);margin-bottom:18px;display:none;
+}
+.progress-card.show{display:block;animation:fadeIn .3s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.progress-info{display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px}
+.progress-track{height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--brand),var(--accent-mid));border-radius:4px;transition:width .2s;width:0%}
+
+/* ===================== DASHBOARD ===================== */
+.dashboard{display:none}
+.dashboard.show{display:block}
+
+.stats-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+  gap:14px;margin-bottom:20px;
+}
+.stat-card{
+  background:var(--surface);border-radius:var(--radius);
+  padding:16px 18px;box-shadow:var(--shadow-sm);
+  border-left:4px solid var(--brand);
+  transition:transform .15s,box-shadow .15s;
+}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.stat-card.success{border-left-color:var(--success)}
+.stat-card.warning{border-left-color:var(--warning)}
+.stat-card.danger{border-left-color:var(--danger)}
+.stat-card.accent{border-left-color:var(--accent-mid);background:linear-gradient(180deg,#fff,var(--accent-soft))}
+.stat-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.stat-value{font-size:21px;font-weight:700;margin-top:6px;letter-spacing:-.5px;color:var(--text)}
+.stat-sub{font-size:11.5px;color:var(--text-soft);margin-top:4px}
+
+/* ===================== TABS ===================== */
+.tabs{
+  display:flex;gap:2px;background:var(--surface);
+  padding:6px;border-radius:var(--radius);
+  box-shadow:var(--shadow-sm);margin-bottom:18px;
+  overflow-x:auto;
+}
+.tab{
+  flex:1;min-width:max-content;
+  padding:10px 18px;border:none;background:transparent;
+  border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;
+  color:var(--text-muted);transition:all .15s;font-family:inherit;
+  display:flex;align-items:center;gap:7px;justify-content:center;
+}
+.tab:hover{color:var(--text);background:var(--surface-alt)}
+.tab.active{
+  background:linear-gradient(135deg,var(--brand-dark),var(--brand-mid));
+  color:#fff;box-shadow:0 2px 6px rgba(8,86,195,.3);
+}
+.tab .badge{
+  background:rgba(255,255,255,.25);color:inherit;
+  padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700;
+}
+.tab:not(.active) .badge{background:var(--accent-soft);color:var(--brand-dark)}
+
+.tab-panel{display:none}
+.tab-panel.active{display:block;animation:fadeIn .25s}
+
+/* ===================== PANELS ===================== */
+.panel{
+  background:var(--surface);border-radius:var(--radius);
+  box-shadow:var(--shadow-sm);margin-bottom:18px;overflow:hidden;
+  border:1px solid var(--border);
+}
+.panel-header{
+  padding:14px 20px;border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
+  background:var(--surface-alt);
+}
+.panel-title{font-size:15px;font-weight:700;color:var(--brand-darker);display:flex;align-items:center;gap:8px}
+.panel-body{padding:18px 20px}
+.panel-actions{display:flex;gap:6px;align-items:center}
+
+/* ===================== FILTERS ===================== */
+.filter-bar{
+  display:grid;
+  grid-template-columns:2fr repeat(3,1fr) auto;
+  gap:10px;margin-bottom:14px;align-items:center;
+}
+.input,.select{
+  width:100%;padding:9px 12px;border:1px solid var(--border);
+  border-radius:8px;font-size:13px;font-family:inherit;background:var(--surface);
+  transition:border-color .15s,box-shadow .15s;color:var(--text);
+}
+.input:focus,.select:focus{
+  outline:none;border-color:var(--brand);
+  box-shadow:0 0 0 3px rgba(8,86,195,.1);
+}
+.search-wrap{position:relative}
+.search-wrap input{padding-left:34px}
+.search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-soft)}
+
+/* ===================== TABLE ===================== */
+.table-wrap{overflow-x:auto;border-radius:var(--radius)}
+table.data-table{
+  width:100%;border-collapse:separate;border-spacing:0;
+  font-size:12.5px;background:var(--surface);
+}
+table.data-table th{
+  position:sticky;top:0;z-index:5;
+  background:linear-gradient(180deg,#eef6fc,var(--accent-soft));
+  text-align:left;padding:10px 12px;
+  font-size:11px;text-transform:uppercase;letter-spacing:.4px;
+  color:var(--brand-dark);font-weight:700;
+  border-bottom:2px solid var(--border);
+  white-space:nowrap;cursor:pointer;user-select:none;
+}
+table.data-table th:hover{background:var(--accent-mid)}
+table.data-table th.sortable::after{content:'⇅';margin-left:6px;opacity:.4;font-size:10px}
+table.data-table th.sort-asc::after{content:'▲';opacity:1;color:var(--brand)}
+table.data-table th.sort-desc::after{content:'▼';opacity:1;color:var(--brand)}
+table.data-table td{
+  padding:10px 12px;border-bottom:1px solid var(--border);
+  vertical-align:top;
+}
+table.data-table tr:hover td{background:var(--surface-alt)}
+table.data-table tr.expanded td{background:var(--accent-soft)}
+table.data-table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.row-toggle{
+  background:none;border:none;cursor:pointer;color:var(--brand);
+  font-size:14px;padding:0;width:22px;height:22px;
+  border-radius:4px;display:inline-flex;align-items:center;justify-content:center;
+}
+.row-toggle:hover{background:var(--accent)}
+.row-toggle.open{transform:rotate(90deg)}
+
+.badge-pill{
+  display:inline-block;padding:3px 9px;border-radius:12px;
+  font-size:11px;font-weight:700;letter-spacing:.2px;white-space:nowrap;
+}
+.k-1{background:#e4f6ee;color:#0a7d58}
+.k-2{background:#fdf3dd;color:#a17408}
+.k-3{background:#fdeadb;color:#b45f11}
+.k-4{background:#fbe3d9;color:#b4441c}
+.k-5{background:#fbe0e0;color:#b32e2e}
+.prod-yes{background:var(--accent);color:var(--brand-darker)}
+.prod-no{background:#eef1f4;color:var(--text-soft)}
+.opp-badge{background:var(--brand);color:#fff}
+.opp-badge.zero{background:#eef1f4;color:var(--text-soft)}
+
+.detail-row{background:var(--surface-alt) !important}
+.detail-row td{padding:0 !important;border-bottom:2px solid var(--brand) !important}
+.detail-content{padding:20px 24px}
+.detail-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:8px 24px;
+}
+.detail-field{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dashed var(--border)}
+.detail-field .lbl{color:var(--text-muted);font-size:12px;flex:0 0 45%}
+.detail-field .val{color:var(--text);font-size:12.5px;font-weight:500;text-align:right;word-break:break-word}
+.detail-section-title{
+  font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--brand);margin:14px 0 8px;
+  border-bottom:2px solid var(--brand);padding-bottom:4px;display:inline-block;
+}
+
+/* ===================== CUSTOMER HERO ===================== */
+.customer-hero{
+  background:linear-gradient(135deg,var(--brand-dark) 0%,var(--brand) 55%,var(--brand-mid) 100%);
+  color:#fff;border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:16px;
+  box-shadow:var(--shadow-md);position:relative;overflow:hidden;
+}
+.customer-hero::before{
+  content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle,rgba(212,240,247,.35),transparent 70%);
+}
+.customer-hero-inner{position:relative;z-index:1}
+.customer-hero .label-tag{
+  display:inline-block;background:rgba(255,255,255,.18);padding:3px 10px;border-radius:20px;
+  font-size:11px;letter-spacing:.6px;text-transform:uppercase;margin-bottom:8px;backdrop-filter:blur(8px);
+}
+.customer-hero .cname{font-size:21px;font-weight:700;letter-spacing:-.2px}
+.customer-hero-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px 20px;margin-top:14px}
+.customer-hero-grid .f-label{font-size:10.5px;opacity:.75;text-transform:uppercase;letter-spacing:.5px}
+.customer-hero-grid .f-value{font-size:13.5px;margin-top:2px;font-weight:600}
+
+.product-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.pill{padding:4px 11px;border-radius:14px;font-size:11px;font-weight:700;background:rgba(255,255,255,.16)}
+.pill.on{background:var(--accent);color:var(--brand-darker)}
+
+/* ===================== OPPORTUNITY CARDS ===================== */
+.opp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+.opp-card{
+  cursor:pointer;border-radius:var(--radius);padding:16px 14px;border:2px solid transparent;
+  background:var(--surface-alt);transition:all .15s;text-align:left;position:relative;
+}
+.opp-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.opp-card.active{border-color:var(--brand);box-shadow:var(--shadow-md);background:linear-gradient(180deg,#fff,var(--accent-soft))}
+.opp-card .opp-icon{font-size:22px;margin-bottom:6px}
+.opp-card .opp-count{font-size:26px;font-weight:800;color:var(--brand-dark);line-height:1}
+.opp-card .opp-label{font-size:12px;font-weight:700;color:var(--text);margin-top:6px}
+.opp-card .opp-sub{font-size:11px;color:var(--text-muted);margin-top:3px;line-height:1.4}
+.opp-card.disabled{opacity:.45}
+
+.opp-detail-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-top:6px}
+.opp-detail-empty{padding:24px;text-align:center;color:var(--text-muted);font-style:italic}
+.rec-note{
+  font-size:12px;color:var(--brand-dark);background:var(--accent-soft);border-left:3px solid var(--brand);
+  padding:10px 14px;border-radius:6px;margin-bottom:12px;line-height:1.6;
+}
+
+/* ===================== WALLET SHARE ===================== */
+.wallet-bar-wrap{margin-bottom:10px}
+.wallet-bar-track{height:14px;background:var(--surface-alt);border-radius:7px;overflow:hidden;border:1px solid var(--border);display:flex}
+.wallet-bar-fill{height:100%;background:linear-gradient(90deg,var(--brand),var(--accent-mid))}
+
+/* ===================== CHARTS ===================== */
+.charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px}
+.chart-card{background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow-sm);border:1px solid var(--border)}
+.chart-card h3{font-size:14px;margin-bottom:14px;color:var(--brand-darker);font-weight:700}
+.chart-canvas-wrap{position:relative;height:280px}
+
+/* ===================== EMPTY / TOAST ===================== */
+.empty{text-align:center;padding:40px 20px;color:var(--text-muted)}
+.toast-container{position:fixed;top:80px;right:24px;z-index:100;display:flex;flex-direction:column;gap:8px}
+.toast{
+  background:var(--surface);border-left:4px solid var(--brand);
+  padding:12px 16px;border-radius:8px;box-shadow:var(--shadow-lg);
+  display:flex;align-items:center;gap:10px;min-width:280px;max-width:400px;
+  font-size:13px;animation:slideIn .25s;
+}
+.toast.success{border-left-color:var(--success)}
+.toast.error{border-left-color:var(--danger)}
+.toast.warning{border-left-color:var(--warning)}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+
+.info-banner{
+  font-size:12px;color:var(--brand-dark);background:var(--accent-soft);border-left:3px solid var(--brand);
+  padding:10px 14px;border-radius:6px;margin-bottom:14px;line-height:1.6;
+}
+.diag-row{padding:6px 12px;background:var(--surface-alt);border-radius:4px;margin-bottom:4px;font-size:12.5px}
+
+@media (max-width:768px){
+  .filter-bar{grid-template-columns:1fr}
+  .header-actions{width:100%}
+  .container{padding:16px}
+}
+
+@media print{
+  .app-header,.tabs,.upload-intro,.slot-grid,.upload-actions,.progress-card,.filter-bar,
+  .panel-actions,.header-actions,.no-print,.row-toggle{display:none !important}
+  .container{max-width:none;padding:0;margin:0}
+  .panel{box-shadow:none;border:1px solid #ccc;page-break-inside:avoid;margin-bottom:10px}
+  .tab-panel{display:block !important}
+}
+</style>
+</head>
+<body>
+
+<header class="app-header no-print">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-logo">C</div>
+      <div class="brand-text">
+        <h1>Customer Relationship Engine</h1>
+        <p>Model Pengelolaan Nasabah Berbasis Data</p>
+      </div>
+    </div>
+    <div class="header-actions" id="headerActions" style="display:none">
+      <button class="btn btn-light" id="btnReset">↻ Upload Baru</button>
+      <button class="btn btn-light" id="btnExportExcel">⬇ Excel</button>
+      <button class="btn btn-primary" id="btnPrint">🖨 Print</button>
+    </div>
+  </div>
+</header>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<main class="container">
+
+  <!-- ===================== UPLOAD SECTION ===================== -->
+  <section id="uploadSection">
+    <div class="upload-intro">
+      <h2>Bangun Customer Relationship Dashboard</h2>
+      <p>Upload sumber data di bawah. <code>LW321 (Pinjaman)</code> wajib diupload — semua data lain akan di-<em>lookup</em> ke CIF pada LW321 untuk membentuk satu tampilan nasabah terintegrasi (lending, funding, dan transaksi merchant). File lain sifatnya opsional; makin banyak yang diupload, makin lengkap wallet share dan rekomendasi cross-selling yang dihasilkan.</p>
+    </div>
+
+    <div class="slot-grid" id="slotGrid"></div>
+
+    <div class="upload-actions">
+      <button class="btn btn-primary" id="btnProcess" disabled>⚙ Proses &amp; Bangun Dashboard</button>
+      <span class="upload-hint" id="processHint">Upload LW321 terlebih dahulu untuk mengaktifkan tombol ini.</span>
+    </div>
+
+    <div class="progress-card" id="progressCard">
+      <div class="progress-info">
+        <span id="progressLabel">Memproses data...</span>
+        <span id="progressPercent">0%</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <p style="margin-top:10px;font-size:12px;color:var(--text-muted)" id="progressDetail">Mempersiapkan...</p>
+    </div>
+  </section>
+
+  <!-- ===================== DASHBOARD ===================== -->
+  <section class="dashboard" id="dashboard">
+
+    <div class="stats-grid" id="statsGrid"></div>
+
+    <div class="tabs no-print" role="tablist">
+      <button class="tab active" data-panel="overview">📊 Ringkasan</button>
+      <button class="tab" data-panel="customers">👤 Customer 360<span class="badge" id="badgeCust">0</span></button>
+      <button class="tab" data-panel="opportunity">💡 Peluang Bisnis<span class="badge" id="badgeOpp">0</span></button>
+    </div>
+
+    <!-- TAB: OVERVIEW -->
+    <div class="tab-panel active" id="panel-overview">
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>Distribusi Kolektibilitas Terburuk per Nasabah</h3>
+          <div class="chart-canvas-wrap"><canvas id="chartKol"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Kepemilikan Produk Nasabah Existing</h3>
+          <div class="chart-canvas-wrap"><canvas id="chartProduk"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Top 10 Nasabah — Baki Debet Pinjaman</h3>
+          <div class="chart-canvas-wrap"><canvas id="chartTopDebet"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Top 10 Nasabah — Total Funding (Tabungan+Giro+Deposito)</h3>
+          <div class="chart-canvas-wrap"><canvas id="chartTopFunding"></canvas></div>
+        </div>
+        <div class="chart-card" style="grid-column:1/-1">
+          <h3>Distribusi Segmen Pinjaman</h3>
+          <div class="chart-canvas-wrap"><canvas id="chartSegmen"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: CUSTOMERS -->
+    <div class="tab-panel" id="panel-customers">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">👤 Single Customer View — Daftar Nasabah</div>
+          <div class="panel-actions"><span style="font-size:12px;color:var(--text-muted)" id="custCounter">0 nasabah</span></div>
+        </div>
+        <div class="panel-body">
+          <div class="filter-bar no-print">
+            <div class="search-wrap">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input class="input" id="custSearch" placeholder="Cari nama, CIF, atau no rekening...">
+            </div>
+            <select class="select" id="custFilterKol"><option value="">Semua Kolektibilitas</option><option value="1">Kol 1</option><option value="2">Kol 2</option><option value="3">Kol 3</option><option value="4">Kol 4</option><option value="5">Kol 5</option></select>
+            <select class="select" id="custFilterProduk">
+              <option value="">Semua Produk</option>
+              <option value="noTabungan">Belum punya Tabungan</option>
+              <option value="noGiro">Belum punya Giro</option>
+              <option value="noDeposito">Belum punya Deposito</option>
+              <option value="noMerchant">Belum punya EDC/QRIS</option>
+              <option value="hasOpp">Punya Peluang Bisnis</option>
+            </select>
+            <select class="select" id="custFilterUker"><option value="">Semua Unit Kerja</option></select>
+            <button class="btn btn-outline btn-sm" id="btnClearCustFilter">Reset</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table" id="custTable">
+              <thead>
+                <tr>
+                  <th style="width:30px"></th>
+                  <th class="sortable" data-sort="nama">Nama Nasabah</th>
+                  <th class="sortable" data-sort="cif">CIF</th>
+                  <th class="sortable" data-sort="uker">Unit Kerja</th>
+                  <th class="sortable num" data-sort="worstKol">Kol</th>
+                  <th class="sortable num" data-sort="totalPlafon">Plafon</th>
+                  <th class="sortable num" data-sort="totalBakiDebet">Baki Debet</th>
+                  <th class="sortable num" data-sort="totalFunding">Total Funding</th>
+                  <th class="sortable num" data-sort="walletShare">% Funding / Plafon</th>
+                  <th>Produk Dimiliki</th>
+                  <th class="sortable num" data-sort="oppCount">Peluang</th>
+                </tr>
+              </thead>
+              <tbody id="custBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: OPPORTUNITY -->
+    <div class="tab-panel" id="panel-opportunity">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">💡 Business Opportunity — Recommendation Engine</div>
+          <div class="panel-actions"><span style="font-size:11.5px;color:var(--text-muted)">Klik kategori untuk melihat daftar nasabah</span></div>
+        </div>
+        <div class="panel-body">
+          <div class="opp-grid" id="oppGrid"></div>
+          <div class="search-wrap no-print" style="margin-bottom:12px;max-width:420px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="input" id="oppSearch" placeholder="Cari nama nasabah atau CIF...">
+          </div>
+          <div class="opp-detail-panel" id="oppDetail"><div class="opp-detail-empty">Pilih kategori peluang di atas untuk menampilkan daftar nasabah.</div></div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+
+/* ===================================================================
+   SLOT DEFINITIONS
+   ================================================================= */
+const SLOTS = [
+  {key:'LW321', title:'LW321 — Pinjaman', required:true, ext:'.xlsx', match:['LW321','PINJAMAN'],
+   desc:'Kunci utama (key) seluruh dashboard. Kolektibilitas, plafon, baki debet, dan CIF nasabah.'},
+  {key:'DI319', title:'DI319 — Tabungan', required:false, ext:'.xlsx', match:['DI319','TABUNGAN'],
+   desc:'Rekening tabungan nasabah, di-lookup berdasarkan CIF ke LW321.'},
+  {key:'DI321', title:'DI321 — Giro', required:false, ext:'.xlsx', match:['DI321','GIRO'],
+   desc:'Rekening giro nasabah, di-lookup berdasarkan CIF ke LW321.'},
+  {key:'CI324', title:'CI324 — Deposito', required:false, ext:'.xlsx', match:['CI324','DEPOSITO'],
+   desc:'Rekening deposito. File ini tidak memiliki kolom CIF, sehingga dicocokkan berdasarkan kemiripan nama (perlu verifikasi manual).'},
+  {key:'EDC', title:'Merchant EDC', required:false, ext:'.csv', match:['EDC'],
+   desc:'Data merchant EDC, di-lookup berdasarkan CIFNO ke LW321.'},
+  {key:'QRIS', title:'Merchant QRIS', required:false, ext:'.csv', match:['QRIS'],
+   desc:'Data merchant QRIS, di-lookup berdasarkan CIF ke LW321.'},
+];
+
+const State = {
+  files:{},        // key -> {file, name}
+  raw:{},          // key -> parsed array of row objects
+  customers:new Map(), // cif -> customer object
+  filteredCust:[],
+  sortKey:null, sortDir:1,
+  expandedRows:new Set(),
+  activeOpp:null,
+  oppCategories:null,
+  charts:{},
+  diag:{},
+};
+
+/* ===================================================================
+   UTILITIES
+   ================================================================= */
+const fmtRupiah = v => {
+  if(v == null || v === '' || isNaN(v)) return '-';
+  const n = Number(v);
+  return 'Rp ' + n.toLocaleString('id-ID', {minimumFractionDigits:0, maximumFractionDigits:0});
+};
+const fmtNum = v => (v==null||v===''||isNaN(v)) ? '-' : Number(v).toLocaleString('id-ID');
+const parseNum = v => {
+  if(v == null || v === '') return 0;
+  if(typeof v === 'number') return v;
+  const s = String(v).replace(/Rp\.?\s*/gi,'').replace(/\s/g,'').replace(/,/g,'').trim();
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+};
+const cleanStr = v => (v==null) ? '' : String(v).replace(/\s+/g,' ').trim();
+const normHeader = h => cleanStr(h).toUpperCase();
+const escapeHtml = s => { if(s==null) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); };
+const showToast = (msg, type='info') => {
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  $('toastContainer').appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(20px)'; t.style.transition='all .25s'; setTimeout(()=>t.remove(),250); }, 3400);
+};
+
+const KOL_LABEL = {1:'Lancar',2:'Dalam Perhatian Khusus',3:'Kurang Lancar',4:'Diragukan',5:'Macet'};
+
+/* ===================================================================
+   GENERIC TABLE PARSER (array-of-arrays -> array of objects)
+   ================================================================= */
+function findHeaderRow(aoa, requiredHeaders){
+  for(let i=0; i<Math.min(aoa.length, 25); i++){
+    const rowSet = new Set((aoa[i]||[]).map(normHeader));
+    if(requiredHeaders.every(h => rowSet.has(h))) return i;
+  }
+  return -1;
+}
+
+function buildRows(aoa, headerRowIdx, fieldMap, keyField){
+  const header = (aoa[headerRowIdx]||[]).map(normHeader);
+  const colIdx = {};
+  header.forEach((h,i)=>{ if(h && !(h in colIdx)) colIdx[h] = i; });
+  const resolved = {};
+  for(const field in fieldMap){
+    for(const variant of fieldMap[field]){
+      const nv = normHeader(variant);
+      if(nv in colIdx){ resolved[field] = colIdx[nv]; break; }
+    }
+  }
+  const out = [];
+  for(let r=headerRowIdx+1; r<aoa.length; r++){
+    const row = aoa[r];
+    if(!row) continue;
+    const obj = {};
+    let hasAny = false;
+    for(const field in resolved){
+      const v = row[resolved[field]];
+      obj[field] = v;
+      if(v !== '' && v != null) hasAny = true;
+    }
+    if(!hasAny) continue;
+    if(keyField && !cleanStr(obj[keyField])) continue;
+    out.push(obj);
+  }
+  return out;
+}
+
+/* ===================================================================
+   FIELD MAPS
+   ================================================================= */
+const MAP_LW321 = {
+  cif:['CIFNO'], namaDebitur:['NAMA_DEBITUR'], noRekening:['NOMOR_REKENING'],
+  kodeUker:['KODE_UKER'], uker:['UKER'], kanca:['KANCA'], lnType:['LN_TYPE'],
+  plafon:['PLAFON DALAM IDR','PLAFON'], baki:['BALANCE DALAM IDR'],
+  rate:['RATE'], tglRealisasi:['TGL_REALISASI'], tglJatuhTempo:['TGL JATUH TEMPO'],
+  jangkaWaktu:['JANGKA WAKTU'], flagRestruk:['FLAG RESTRUK'],
+  tunggakanPokok:['TUNGGAKAN POKOK'], tunggakanBunga:['TUNGGAKAN BUNGA'], tunggakanPinalti:['TUNGGAKAN PINALTI'],
+  code:['CODE'], description:['DESCRIPTION'], segmenLv1:['SEGMEN LV1'], descSegmenLv1:['DESC SEGMEN LV1'],
+  kolAdk:['KOL_ADK'], pnPengelola:['PN PENGELOLA SINGLEPN'], nextPmtDate:['NEXT_PMT_DATE'],
+};
+const MAP_DI319 = {
+  cif:['CIFF NO'], accountNumber:['ACCOUNT NUMBER'], shortName:['SHORT NAME'], openDt:['OPEN DT'],
+  balance:['BALANCE'], availBalance:['AVAILABLE BALANCE'], avgBalance:['AVERAGE BALANCE'],
+  prodCode:['PROD CODE'], ukerCode:['UKER CODE'], pnCS:['PN CUSTOMER SERVICE'],
+};
+const MAP_CI324 = {
+  type:['TYPE'], acctno:['ACCTNO'], principal:['PRINCIPAL AMOUNT'], shortName:['SHORT NAME'],
+  issueDt:['ISSUE DT'], matDt:['MAT DT'], intRate:['INT RATE'], intTenor:['INT TENOR DISP'],
+  renew:['RENEW'], kodeUker:['KODE UKER'],
+};
+const MAP_DI321 = {
+  cif:['CIFNO'], accountNumber:['ACCOUNT NUMBER'], productCode:['PRODUCT CODE'], status:['STATUS'],
+  shortName:['SHORT NAME'], openDate:['OPEN DATE'], balance:['BALANCE'], availBalance:['AVAIL BALANCE'],
+  limit:['LIMIT'], kodeUker:['KODE UKER'],
+};
+const MAP_EDC = {
+  cif:['CIFNO'], mid:['MID'], tid:['TID'], namaMerchant:['NAMA_MERCHANT'], jenis:['JENIS'],
+  jmlTransaksi:['JML_TRANSAKSI'], salesVolume:['SALES_VOLUME'], akumulasiTransaksi:['AKUMULASI_TRANSAKSI'],
+  akumulasiSalesVolume:['AKUMULASI_SALES_VOLUME'], ketMcc:['KET_MCC'], statusTransactional:['STATUS_TRANSACTIONAL'],
+  aktifOrStaging:['AKTIF_OR_STAGING'], tiering:['TIERING_SALES_VOLUME'],
+};
+const MAP_QRIS = {
+  cif:['CIF'], namaMerchant:['NAMA_MERCHANT'], jenisUsaha:['JENIS_USAHA'], mcc:['MCC'], status:['STATUS'],
+  merchantType:['MERCHANT_TYPE'], akumulasiSvTotal:['AKUMULASI_SV_TOTAL'], posisiSvTotal:['POSISI_SV_TOTAL'],
+  akumulasiTrxTotal:['AKUMULASI_TRX_TOTAL'], saldoPosisi:['SALDO_POSISI'],
+};
+
+const PARSERS = {
+  LW321: {req:['CIFNO','NOMOR_REKENING'], map:MAP_LW321, key:'cif'},
+  DI319: {req:['CIFF NO','ACCOUNT NUMBER'], map:MAP_DI319, key:'cif'},
+  CI324: {req:['ACCTNO','PRINCIPAL AMOUNT'], map:MAP_CI324, key:'acctno'},
+  DI321: {req:['CIFNO','ACCOUNT NUMBER','LIMIT'], map:MAP_DI321, key:'cif'},
+  EDC:   {req:['CIFNO','MID'], map:MAP_EDC, key:'cif'},
+  QRIS:  {req:['CIF','MERCHANT_PAN'], map:MAP_QRIS, key:'cif'},
+};
+
+/* ===================================================================
+   FILE READERS
+   ================================================================= */
+function readXlsxAsAOA(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try{
+        const wb = XLSX.read(e.target.result, {type:'array'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const aoa = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:''});
+        resolve(aoa);
+      } catch(err){ reject(err); }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+function readDelimitedAsAOA(file, delimiter){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try{
+        const decoder = new TextDecoder('windows-1252');
+        const text = decoder.decode(e.target.result);
+        const lines = text.split(/\r\n|\n/).filter(l => l.length > 0);
+        const aoa = lines.map(l => l.split(delimiter));
+        resolve(aoa);
+      } catch(err){ reject(err); }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+async function parseFileForSlot(key, file){
+  const cfg = PARSERS[key];
+  let aoa;
+  if(file.name.toLowerCase().endsWith('.csv')){
+    aoa = await readDelimitedAsAOA(file, '|');
+  } else {
+    aoa = await readXlsxAsAOA(file);
+  }
+  const hdrIdx = findHeaderRow(aoa, cfg.req);
+  if(hdrIdx < 0) throw new Error('Header kolom yang diharapkan tidak ditemukan pada file ini.');
+  const rows = buildRows(aoa, hdrIdx, cfg.map, cfg.key);
+  return rows;
+}
+
+/* ===================================================================
+   SLOT UI
+   ================================================================= */
+function renderSlots(){
+  const grid = $('slotGrid');
+  grid.innerHTML = SLOTS.map(s => `
+    <div class="slot-card ${s.required?'required':''}" id="slotCard_${s.key}" data-slot="${s.key}">
+      <div class="slot-head">
+        <div class="slot-title">${s.title}</div>
+        <span class="slot-badge ${s.required?'req':'opt'}">${s.required?'Wajib':'Opsional'}</span>
+      </div>
+      <div class="slot-desc">${s.desc}</div>
+      <div class="slot-status" id="slotStatus_${s.key}">Belum diupload (${s.ext})</div>
+      <button class="slot-pick" id="slotPick_${s.key}">📁 Pilih atau seret file ke sini</button>
+      <input type="file" class="slot-input" id="slotInput_${s.key}" accept="${s.ext},.xlsx,.csv">
+    </div>
+  `).join('');
+
+  SLOTS.forEach(s => {
+    const card = $('slotCard_'+s.key);
+    const input = $('slotInput_'+s.key);
+    const pick = $('slotPick_'+s.key);
+    pick.addEventListener('click', () => input.click());
+    input.addEventListener('change', () => { if(input.files[0]) assignFileToSlot(s.key, input.files[0]); });
+    card.addEventListener('dragover', e => { e.preventDefault(); card.classList.add('dragging'); });
+    card.addEventListener('dragleave', () => card.classList.remove('dragging'));
+    card.addEventListener('drop', e => {
+      e.preventDefault(); card.classList.remove('dragging');
+      if(e.dataTransfer.files[0]) assignFileToSlot(s.key, e.dataTransfer.files[0]);
+    });
+  });
+
+  // A single global dropzone-like behavior on the whole grid: auto-detect by filename
+  grid.addEventListener('dragover', e => e.preventDefault());
+  grid.addEventListener('drop', e => {
+    // handled per-card already; this prevents browser from opening the file if dropped between cards
+    e.preventDefault();
+  });
+}
+
+function detectSlotFromFilename(name){
+  const up = name.toUpperCase();
+  for(const s of SLOTS){
+    if(s.match.some(m => up.includes(m))) return s.key;
+  }
+  return null;
+}
+
+function assignFileToSlot(key, file){
+  State.files[key] = file;
+  const statusEl = $('slotStatus_'+key);
+  statusEl.textContent = '⏳ Memvalidasi ' + file.name + '...';
+  const card = $('slotCard_'+key);
+  card.classList.remove('filled');
+  parseFileForSlot(key, file).then(rows => {
+    State.raw[key] = rows;
+    statusEl.className = 'slot-status ok';
+    statusEl.textContent = `✓ ${file.name} — ${rows.length.toLocaleString('id-ID')} baris terbaca`;
+    card.classList.add('filled');
+    updateProcessButton();
+  }).catch(err => {
+    statusEl.className = 'slot-status err';
+    statusEl.textContent = `✗ Gagal membaca file: ${err.message}`;
+    delete State.raw[key];
+    updateProcessButton();
+  });
+}
+
+function updateProcessButton(){
+  const ok = !!State.raw['LW321'] && State.raw['LW321'].length > 0;
+  $('btnProcess').disabled = !ok;
+  $('processHint').textContent = ok
+    ? 'Siap diproses. File lain bersifat opsional dan bisa ditambahkan kapan saja sebelum diproses.'
+    : 'Upload LW321 terlebih dahulu untuk mengaktifkan tombol ini.';
+}
+
+/* Global drop zone: drop any number of files anywhere in the upload section, auto-detect slot */
+function setupGlobalDrop(){
+  const zone = $('uploadSection');
+  zone.addEventListener('dragover', e => e.preventDefault());
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    const files = [...(e.dataTransfer.files||[])];
+    files.forEach(f => {
+      const slot = detectSlotFromFilename(f.name);
+      if(slot) assignFileToSlot(slot, f);
+      else showToast('Tidak dikenali sebagai salah satu jenis file: ' + f.name, 'warning');
+    });
+  });
+}
+
+/* ===================================================================
+   BUILD CUSTOMER 360 (join everything to LW321 by CIF)
+   ================================================================= */
+function normName(n){
+  return cleanStr(n).toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+}
+function namesLikelyMatch(a, b){
+  if(!a || !b) return false;
+  if(a === b) return true;
+  const shorter = a.length < b.length ? a : b;
+  const longer = a.length < b.length ? b : a;
+  if(shorter.length >= 8 && longer.startsWith(shorter)) return true;
+  return false;
+}
+
+function buildCustomers(){
+  const customers = new Map();
+  const loanRows = State.raw['LW321'] || [];
+
+  // 1. Base universe: every CIF present in LW321
+  loanRows.forEach(row => {
+    const cif = cleanStr(row.cif);
+    if(!cif) return;
+    if(!customers.has(cif)){
+      customers.set(cif, {
+        cif, nama: cleanStr(row.namaDebitur), uker: cleanStr(row.uker) || cleanStr(row.kanca),
+        loans:[], tabungan:[], giro:[], deposito:[], edc:[], qris:[],
+      });
+    }
+    const c = customers.get(cif);
+    row._plafon = parseNum(row.plafon);
+    row._baki = parseNum(row.baki);
+    row._kol = parseInt(row.kolAdk,10) || 1;
+    row._tunggakan = parseNum(row.tunggakanPokok) + parseNum(row.tunggakanBunga) + parseNum(row.tunggakanPinalti);
+    c.loans.push(row);
+  });
+
+  // 2. Tabungan (DI319) — exact CIF match
+  const diagCounts = {DI319:{total:0,matched:0}, DI321:{total:0,matched:0}, CI324:{total:0,matched:0,fuzzy:0}, EDC:{total:0,matched:0}, QRIS:{total:0,matched:0}};
+  (State.raw['DI319']||[]).forEach(row => {
+    diagCounts.DI319.total++;
+    const cif = cleanStr(row.cif);
+    if(customers.has(cif)){
+      row._balance = parseNum(row.balance);
+      customers.get(cif).tabungan.push(row);
+      diagCounts.DI319.matched++;
+    }
+  });
+
+  // 3. Giro (DI321) — exact CIF match
+  (State.raw['DI321']||[]).forEach(row => {
+    diagCounts.DI321.total++;
+    const cif = cleanStr(row.cif);
+    if(customers.has(cif)){
+      row._balance = parseNum(row.balance);
+      customers.get(cif).giro.push(row);
+      diagCounts.DI321.matched++;
+    }
+  });
+
+  // 4. Deposito (CI324) — no CIF column, match by normalized SHORT NAME vs NAMA_DEBITUR
+  const nameIndex = new Map(); // normName -> cif (first match); handles prefix-truncated short names too
+  const nameList = [];
+  customers.forEach((c, cif) => { const n = normName(c.nama); nameIndex.set(n, cif); nameList.push([n, cif]); });
+  (State.raw['CI324']||[]).forEach(row => {
+    diagCounts.CI324.total++;
+    const rn = normName(row.shortName);
+    let cif = nameIndex.get(rn);
+    let fuzzy = false;
+    if(!cif){
+      for(const [n, c] of nameList){
+        if(namesLikelyMatch(rn, n)){ cif = c; fuzzy = true; break; }
+      }
+    }
+    if(cif){
+      row._principal = parseNum(row.principal);
+      row._matchType = fuzzy ? 'name-fuzzy' : 'name-exact';
+      customers.get(cif).deposito.push(row);
+      diagCounts.CI324.matched++;
+      if(fuzzy) diagCounts.CI324.fuzzy++;
+    }
+  });
+
+  // 5. EDC merchant — exact CIFNO match
+  (State.raw['EDC']||[]).forEach(row => {
+    diagCounts.EDC.total++;
+    const cif = cleanStr(row.cif);
+    if(customers.has(cif)){
+      row._volume = parseNum(row.akumulasiSalesVolume || row.salesVolume);
+      row._trx = parseNum(row.akumulasiTransaksi || row.jmlTransaksi);
+      customers.get(cif).edc.push(row);
+      diagCounts.EDC.matched++;
+    }
+  });
+
+  // 6. QRIS merchant — exact CIF match
+  (State.raw['QRIS']||[]).forEach(row => {
+    diagCounts.QRIS.total++;
+    const cif = cleanStr(row.cif);
+    if(customers.has(cif)){
+      row._volume = parseNum(row.akumulasiSvTotal);
+      row._trx = parseNum(row.akumulasiTrxTotal);
+      customers.get(cif).qris.push(row);
+      diagCounts.QRIS.matched++;
+    }
+  });
+
+  // 7. Compute aggregates & opportunity flags per customer
+  customers.forEach(c => {
+    c.totalPlafon = c.loans.reduce((s,l)=>s+l._plafon,0);
+    c.totalBakiDebet = c.loans.reduce((s,l)=>s+l._baki,0);
+    c.totalTunggakan = c.loans.reduce((s,l)=>s+l._tunggakan,0);
+    c.worstKol = c.loans.reduce((m,l)=>Math.max(m,l._kol),1);
+    c.hasRestruk = c.loans.some(l => cleanStr(l.flagRestruk).toUpperCase()==='Y');
+    c.totalTabungan = c.tabungan.reduce((s,t)=>s+t._balance,0);
+    c.totalGiro = c.giro.reduce((s,t)=>s+t._balance,0);
+    c.totalDeposito = c.deposito.reduce((s,t)=>s+t._principal,0);
+    c.totalFunding = c.totalTabungan + c.totalGiro + c.totalDeposito;
+    c.totalMerchantVolume = c.edc.reduce((s,t)=>s+t._volume,0) + c.qris.reduce((s,t)=>s+t._volume,0);
+    c.totalMerchantTrx = c.edc.reduce((s,t)=>s+t._trx,0) + c.qris.reduce((s,t)=>s+t._trx,0);
+    c.walletShare = c.totalPlafon > 0 ? (c.totalFunding / c.totalPlafon) : null;
+
+    const opp = [];
+    if(c.tabungan.length===0) opp.push('noTabungan');
+    if(c.giro.length===0) opp.push('noGiro');
+    if(c.deposito.length===0 && c.totalFunding > 50000000) opp.push('noDeposito');
+    if(c.edc.length===0 && c.qris.length===0) opp.push('noMerchant');
+    if(c.worstKol >= 2) opp.push('kolWatch');
+    c.opportunities = opp;
+    c.oppCount = opp.length;
+  });
+
+  State.customers = customers;
+  State.diag = diagCounts;
+}
+
+/* ===================================================================
+   OPPORTUNITY CATEGORY DEFINITIONS
+   ================================================================= */
+const OPP_DEFS = {
+  noTabungan: {icon:'💳', label:'Cross-sell Tabungan', sub:'Nasabah pinjaman belum punya rekening tabungan di BRI.', rec:'Tawarkan pembukaan rekening tabungan sebagai basis penampungan transaksi harian dan monitoring cashflow nasabah.'},
+  noGiro:     {icon:'🏦', label:'Cross-sell Giro', sub:'Nasabah pinjaman belum punya rekening giro.', rec:'Untuk nasabah segmen usaha, giro memudahkan transaksi bisnis dan memperkuat monitoring arus kas pasca pencairan kredit.'},
+  noDeposito: {icon:'💰', label:'Edukasi Deposito', sub:'Dana funding cukup besar (>Rp 50 juta) namun belum ditempatkan di deposito.', rec:'Dana mengendap besar berpotensi dikonversi menjadi deposito untuk optimalisasi dana pihak ketiga (DPK) dan loyalitas nasabah.'},
+  noMerchant: {icon:'📱', label:'Ekosistem EDC/QRIS', sub:'Nasabah belum memiliki merchant EDC maupun QRIS.', rec:'Peluang akuisisi ekosistem merchant (EDC/QRIS) khususnya untuk nasabah dengan usaha produktif, untuk memperluas fee based income & data transaksi.'},
+  kolWatch:   {icon:'⚠️', label:'Monitoring Kolektibilitas', sub:'Kolektibilitas terburuk berada di Kol 2 ke atas.', rec:'Perlu monitoring komitmen pembayaran dan penelusuran penyebab tunggakan; koordinasi RM SME & RM FT untuk joint OTS.'},
+};
+
+function computeOppCategories(){
+  const cats = {};
+  Object.keys(OPP_DEFS).forEach(k => cats[k] = []);
+  State.customers.forEach(c => {
+    c.opportunities.forEach(k => { if(cats[k]) cats[k].push(c); });
+  });
+  State.oppCategories = cats;
+}
+
+/* ===================================================================
+   RENDER: STATS
+   ================================================================= */
+function renderStats(){
+  const custs = [...State.customers.values()];
+  const totalPlafon = custs.reduce((s,c)=>s+c.totalPlafon,0);
+  const totalBaki = custs.reduce((s,c)=>s+c.totalBakiDebet,0);
+  const totalFunding = custs.reduce((s,c)=>s+c.totalFunding,0);
+  const custWithOpp = custs.filter(c=>c.oppCount>0).length;
+  const custMerchant = custs.filter(c=>c.edc.length||c.qris.length).length;
+
+  const cards = [
+    {label:'Total Nasabah (CIF)', value:custs.length, sub:'existing customer dari LW321', cls:'accent'},
+    {label:'Total Plafon Pinjaman', value:fmtRupiah(totalPlafon), sub:`${custs.reduce((s,c)=>s+c.loans.length,0)} fasilitas kredit`, cls:''},
+    {label:'Total Baki Debet', value:fmtRupiah(totalBaki), sub:'outstanding aktif', cls:''},
+    {label:'Total Funding (T+G+D)', value:fmtRupiah(totalFunding), sub:'tabungan + giro + deposito', cls:'success'},
+    {label:'Nasabah dengan Merchant', value:custMerchant, sub:'punya EDC dan/atau QRIS', cls:''},
+    {label:'Nasabah dengan Peluang', value:custWithOpp, sub:'terdeteksi ≥1 peluang cross-sell', cls:'warning'},
+  ];
+  $('statsGrid').innerHTML = cards.map(c => `
+    <div class="stat-card ${c.cls}">
+      <div class="stat-label">${c.label}</div>
+      <div class="stat-value">${typeof c.value==='number' ? fmtNum(c.value) : c.value}</div>
+      <div class="stat-sub">${c.sub}</div>
+    </div>
+  `).join('');
+  $('badgeCust').textContent = custs.length;
+  $('badgeOpp').textContent = custWithOpp;
+}
+
+/* ===================================================================
+   RENDER: CUSTOMER TABLE
+   ================================================================= */
+function renderUkerFilterOptions(){
+  const set = new Set();
+  State.customers.forEach(c => { if(c.uker) set.add(c.uker); });
+  const sel = $('custFilterUker');
+  sel.innerHTML = '<option value="">Semua Unit Kerja</option>' + [...set].sort().map(u=>`<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join('');
+}
+
+function applyCustFilters(){
+  const q = $('custSearch').value.toLowerCase().trim();
+  const kol = $('custFilterKol').value;
+  const prod = $('custFilterProduk').value;
+  const uker = $('custFilterUker').value;
+  let list = [...State.customers.values()];
+  list = list.filter(c => {
+    if(kol && String(c.worstKol) !== kol) return false;
+    if(uker && c.uker !== uker) return false;
+    if(prod === 'noTabungan' && c.tabungan.length>0) return false;
+    if(prod === 'noGiro' && c.giro.length>0) return false;
+    if(prod === 'noDeposito' && !c.opportunities.includes('noDeposito')) return false;
+    if(prod === 'noMerchant' && (c.edc.length>0||c.qris.length>0)) return false;
+    if(prod === 'hasOpp' && c.oppCount===0) return false;
+    if(q){
+      const hay = `${c.nama} ${c.cif} ${c.loans.map(l=>l.noRekening).join(' ')}`.toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  if(State.sortKey){
+    list.sort((a,b) => {
+      let av = a[State.sortKey], bv = b[State.sortKey];
+      if(typeof av === 'string') av = av.toLowerCase();
+      if(typeof bv === 'string') bv = bv.toLowerCase();
+      if(av==null) av=''; if(bv==null) bv='';
+      return (av<bv?-1:av>bv?1:0) * State.sortDir;
+    });
+  } else {
+    list.sort((a,b) => b.totalBakiDebet - a.totalBakiDebet);
+  }
+  State.filteredCust = list;
+  renderCustTable();
+}
+
+function productPills(c){
+  const defs = [['T','Tabungan',c.tabungan.length>0],['G','Giro',c.giro.length>0],['D','Deposito',c.deposito.length>0],['E','EDC',c.edc.length>0],['Q','QRIS',c.qris.length>0]];
+  return defs.map(([code,label,on]) => `<span class="badge-pill ${on?'prod-yes':'prod-no'}" title="${label}">${code}</span>`).join(' ');
+}
+
+function renderCustTable(){
+  const body = $('custBody');
+  $('custCounter').textContent = `${State.filteredCust.length} dari ${State.customers.size} nasabah`;
+  if(!State.filteredCust.length){
+    body.innerHTML = '<tr><td colspan="11" class="empty">Tidak ada nasabah yang cocok dengan filter.</td></tr>';
+    return;
+  }
+  const rows = [];
+  State.filteredCust.forEach((c, i) => {
+    const isExpanded = State.expandedRows.has(c.cif);
+    rows.push(`
+      <tr class="${isExpanded?'expanded':''}" data-cif="${escapeHtml(c.cif)}">
+        <td><button class="row-toggle ${isExpanded?'open':''}" onclick="toggleCustRow('${escapeHtml(c.cif)}')">▶</button></td>
+        <td><strong>${escapeHtml(c.nama)}</strong></td>
+        <td style="font-family:monospace">${escapeHtml(c.cif)}</td>
+        <td>${escapeHtml(c.uker)}</td>
+        <td class="num"><span class="badge-pill k-${c.worstKol}">Kol ${c.worstKol}</span></td>
+        <td class="num">${fmtRupiah(c.totalPlafon)}</td>
+        <td class="num">${fmtRupiah(c.totalBakiDebet)}</td>
+        <td class="num">${fmtRupiah(c.totalFunding)}</td>
+        <td class="num">${c.walletShare!=null ? (c.walletShare*100).toFixed(1)+'%' : '-'}</td>
+        <td>${productPills(c)}</td>
+        <td class="num"><span class="badge-pill ${c.oppCount>0?'opp-badge':'opp-badge zero'}">${c.oppCount}</span></td>
+      </tr>
+    `);
+    if(isExpanded){
+      rows.push(`<tr class="detail-row" data-detail-for="${escapeHtml(c.cif)}"><td colspan="11">${renderCustomerDetail(c)}</td></tr>`);
+    }
+  });
+  body.innerHTML = rows.join('');
+}
+
+window.toggleCustRow = function(cif){
+  if(State.expandedRows.has(cif)) State.expandedRows.delete(cif);
+  else State.expandedRows.add(cif);
+  renderCustTable();
+};
+
+/* ===================================================================
+   RENDER: CUSTOMER DETAIL (Single Customer View)
+   ================================================================= */
+function renderCustomerDetail(c){
+  const loansRows = c.loans.map(l => `
+    <tr>
+      <td>${escapeHtml(l.noRekening)}</td>
+      <td>${escapeHtml(l.description||l.lnType)}</td>
+      <td><span class="badge-pill k-${l._kol}">${l._kol} - ${KOL_LABEL[l._kol]||''}</span></td>
+      <td class="num">${fmtRupiah(l._plafon)}</td>
+      <td class="num">${fmtRupiah(l._baki)}</td>
+      <td class="num">${fmtRupiah(l._tunggakan)}</td>
+      <td>${escapeHtml(l.rate)}%</td>
+      <td>${escapeHtml(l.tglJatuhTempo)}</td>
+      <td>${escapeHtml(l.pnPengelola)}</td>
+    </tr>
+  `).join('');
+
+  const tabunganRows = c.tabungan.map(t => `
+    <tr><td>${escapeHtml(t.accountNumber)}</td><td>${escapeHtml(t.prodCode)}</td><td class="num">${fmtRupiah(t._balance)}</td><td>${escapeHtml(t.openDt)}</td></tr>
+  `).join('') || '<tr><td colspan="4" class="empty">Belum ada rekening tabungan.</td></tr>';
+
+  const giroRows = c.giro.map(t => `
+    <tr><td>${escapeHtml(t.accountNumber)}</td><td>${escapeHtml(t.productCode)}</td><td class="num">${fmtRupiah(t._balance)}</td><td>${escapeHtml(t.openDate)}</td></tr>
+  `).join('') || '<tr><td colspan="4" class="empty">Belum ada rekening giro.</td></tr>';
+
+  const depositoRows = c.deposito.map(t => `
+    <tr><td>${escapeHtml(t.acctno)}</td><td class="num">${fmtRupiah(t._principal)}</td><td>${escapeHtml(t.intRate)}%</td><td>${escapeHtml(t.matDt)}</td><td>${t._matchType==='name-fuzzy' ? '<span class="badge-pill k-3">nama mirip - cek manual</span>' : '<span class="badge-pill prod-yes">nama sama</span>'}</td></tr>
+  `).join('') || '<tr><td colspan="5" class="empty">Belum ada rekening deposito.</td></tr>';
+
+  const merchantRows = [
+    ...c.edc.map(m => `<tr><td>EDC</td><td>${escapeHtml(m.namaMerchant)}</td><td>${escapeHtml(m.mid)}</td><td class="num">${fmtNum(m._trx)}</td><td class="num">${fmtRupiah(m._volume)}</td></tr>`),
+    ...c.qris.map(m => `<tr><td>QRIS</td><td>${escapeHtml(m.namaMerchant)}</td><td>-</td><td class="num">${fmtNum(m._trx)}</td><td class="num">${fmtRupiah(m._volume)}</td></tr>`),
+  ].join('') || '<tr><td colspan="5" class="empty">Belum ada merchant EDC/QRIS.</td></tr>';
+
+  const oppHtml = c.opportunities.length ? c.opportunities.map(k => `<div class="rec-note"><strong>${OPP_DEFS[k].icon} ${OPP_DEFS[k].label}:</strong> ${OPP_DEFS[k].rec}</div>`).join('') 
+    : '<div class="rec-note">✅ Tidak ada peluang cross-sell yang terdeteksi otomatis untuk nasabah ini pada periode data saat ini.</div>';
+
+  const walletPct = c.walletShare != null ? Math.min(150, c.walletShare*100) : 0;
+
+  return `
+    <div class="detail-content">
+      <div class="customer-hero" style="margin-bottom:14px">
+        <div class="customer-hero-inner">
+          <span class="label-tag">Customer Relationship View</span>
+          <div class="cname">${escapeHtml(c.nama)}</div>
+          <div class="customer-hero-grid">
+            <div><div class="f-label">CIF</div><div class="f-value">${escapeHtml(c.cif)}</div></div>
+            <div><div class="f-label">Unit Kerja</div><div class="f-value">${escapeHtml(c.uker)}</div></div>
+            <div><div class="f-label">Kolektibilitas Terburuk</div><div class="f-value">${c.worstKol} - ${KOL_LABEL[c.worstKol]}</div></div>
+            <div><div class="f-label">RM Pengelola</div><div class="f-value">${escapeHtml(c.loans[0]?.pnPengelola || '-')}</div></div>
+            <div><div class="f-label">Wallet Share (Funding/Plafon)</div><div class="f-value">${c.walletShare!=null ? (c.walletShare*100).toFixed(1)+'%' : '-'}</div></div>
+          </div>
+          <div class="product-pills">
+            <span class="pill ${c.loans.length?'on':''}">Pinjaman ${c.loans.length}</span>
+            <span class="pill ${c.tabungan.length?'on':''}">Tabungan ${c.tabungan.length}</span>
+            <span class="pill ${c.giro.length?'on':''}">Giro ${c.giro.length}</span>
+            <span class="pill ${c.deposito.length?'on':''}">Deposito ${c.deposito.length}</span>
+            <span class="pill ${c.edc.length?'on':''}">EDC ${c.edc.length}</span>
+            <span class="pill ${c.qris.length?'on':''}">QRIS ${c.qris.length}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="wallet-bar-wrap">
+        <div class="wallet-bar-track"><div class="wallet-bar-fill" style="width:${walletPct}%"></div></div>
+      </div>
+
+      <div class="detail-section-title">💡 Business Opportunity — Rekomendasi</div>
+      ${oppHtml}
+
+      <div class="detail-section-title">Fasilitas Kredit (${c.loans.length})</div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>No Rekening</th><th>Jenis</th><th>Kol</th><th class="num">Plafon</th><th class="num">Baki Debet</th><th class="num">Tunggakan</th><th>Rate</th><th>Jatuh Tempo</th><th>RM</th></tr></thead><tbody>${loansRows}</tbody></table></div>
+
+      <div class="detail-section-title">Tabungan (${c.tabungan.length})</div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>No Rekening</th><th>Produk</th><th class="num">Saldo</th><th>Tgl Buka</th></tr></thead><tbody>${tabunganRows}</tbody></table></div>
+
+      <div class="detail-section-title">Giro (${c.giro.length})</div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>No Rekening</th><th>Produk</th><th class="num">Saldo</th><th>Tgl Buka</th></tr></thead><tbody>${giroRows}</tbody></table></div>
+
+      <div class="detail-section-title">Deposito (${c.deposito.length}) — dicocokkan berdasarkan nama (tanpa CIF)</div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>No Rekening</th><th class="num">Nominal</th><th>Rate</th><th>Jatuh Tempo</th><th>Kualitas Match</th></tr></thead><tbody>${depositoRows}</tbody></table></div>
+
+      <div class="detail-section-title">Merchant EDC / QRIS (${c.edc.length + c.qris.length})</div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Tipe</th><th>Nama Merchant</th><th>MID</th><th class="num">Transaksi</th><th class="num">Volume</th></tr></thead><tbody>${merchantRows}</tbody></table></div>
+    </div>
+  `;
+}
+
+/* ===================================================================
+   RENDER: OPPORTUNITY TAB
+   ================================================================= */
+function renderOppGrid(){
+  computeOppCategories();
+  const grid = $('oppGrid');
+  grid.innerHTML = Object.keys(OPP_DEFS).map(k => {
+    const def = OPP_DEFS[k];
+    const list = State.oppCategories[k];
+    const isEmpty = list.length === 0;
+    return `
+      <div class="opp-card ${isEmpty?'disabled':''}" data-opp="${k}" onclick="${isEmpty?'':`selectOpp('${k}')`}">
+        <div class="opp-icon">${def.icon}</div>
+        <div class="opp-count">${list.length}</div>
+        <div class="opp-label">${def.label}</div>
+        <div class="opp-sub">${def.sub}</div>
+      </div>
+    `;
+  }).join('');
+  const firstNonEmpty = Object.keys(OPP_DEFS).find(k => State.oppCategories[k].length > 0);
+  if(firstNonEmpty) selectOpp(firstNonEmpty);
+  else $('oppDetail').innerHTML = '<div class="opp-detail-empty">Tidak ada peluang bisnis yang terdeteksi dari data saat ini.</div>';
+}
+
+function selectOpp(k){
+  State.activeOpp = k;
+  document.querySelectorAll('.opp-card').forEach(el => el.classList.toggle('active', el.dataset.opp === k));
+  const def = OPP_DEFS[k];
+  const q = ($('oppSearch').value || '').toLowerCase().trim();
+  let list = State.oppCategories[k];
+  if(q) list = list.filter(c => `${c.nama} ${c.cif}`.toLowerCase().includes(q));
+  const rows = list.slice().sort((a,b)=>b.totalBakiDebet-a.totalBakiDebet).map(c => `
+    <tr>
+      <td><strong>${escapeHtml(c.nama)}</strong></td>
+      <td style="font-family:monospace">${escapeHtml(c.cif)}</td>
+      <td>${escapeHtml(c.uker)}</td>
+      <td class="num"><span class="badge-pill k-${c.worstKol}">Kol ${c.worstKol}</span></td>
+      <td class="num">${fmtRupiah(c.totalBakiDebet)}</td>
+      <td class="num">${fmtRupiah(c.totalFunding)}</td>
+      <td>${escapeHtml(c.loans[0]?.pnPengelola || '-')}</td>
+    </tr>
+  `).join('');
+  $('oppDetail').innerHTML = `
+    <div class="rec-note"><strong>${def.icon} ${def.label}</strong> — ${def.rec}</div>
+    <div class="table-wrap"><table class="data-table"><thead><tr>
+      <th>Nama Nasabah</th><th>CIF</th><th>Unit Kerja</th><th class="num">Kol</th><th class="num">Baki Debet</th><th class="num">Total Funding</th><th>RM Pengelola</th>
+    </tr></thead><tbody>${rows || '<tr><td colspan="7" class="empty">Tidak ada nasabah yang cocok.</td></tr>'}</tbody></table></div>
+  `;
+}
+window.selectOpp = selectOpp;
+$('oppSearch').addEventListener('input', () => { if(State.activeOpp) selectOpp(State.activeOpp); });
+
+/* ===================================================================
+   CHARTS
+   ================================================================= */
+function renderCharts(){
+  Object.values(State.charts).forEach(c => { try{ c.destroy(); }catch(e){} });
+  State.charts = {};
+  const custs = [...State.customers.values()];
+  const CBLUE = ['#0856c3','#2e78d6','#5a9bdf','#a9e1ee','#d4f0f7'];
+
+  const kolCount = {1:0,2:0,3:0,4:0,5:0};
+  custs.forEach(c => kolCount[c.worstKol] = (kolCount[c.worstKol]||0)+1);
+  State.charts.kol = new Chart($('chartKol'), {
+    type:'bar',
+    data:{labels:['Kol 1','Kol 2','Kol 3','Kol 4','Kol 5'], datasets:[{data:[1,2,3,4,5].map(k=>kolCount[k]||0), backgroundColor:['#0a9d6e','#d69a12','#e07b1f','#d6592f','#d64545'], borderRadius:6}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}
+  });
+
+  const prodCount = {Tabungan:0,Giro:0,Deposito:0,EDC:0,QRIS:0};
+  custs.forEach(c => {
+    if(c.tabungan.length) prodCount.Tabungan++;
+    if(c.giro.length) prodCount.Giro++;
+    if(c.deposito.length) prodCount.Deposito++;
+    if(c.edc.length) prodCount.EDC++;
+    if(c.qris.length) prodCount.QRIS++;
+  });
+  State.charts.produk = new Chart($('chartProduk'), {
+    type:'doughnut',
+    data:{labels:Object.keys(prodCount), datasets:[{data:Object.values(prodCount), backgroundColor:CBLUE, borderWidth:2, borderColor:'#fff'}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{font:{size:11}}}}}
+  });
+
+  const topDebet = custs.slice().sort((a,b)=>b.totalBakiDebet-a.totalBakiDebet).slice(0,10);
+  State.charts.topDebet = new Chart($('chartTopDebet'), {
+    type:'bar',
+    data:{labels:topDebet.map(c=>c.nama.length>22?c.nama.slice(0,20)+'…':c.nama), datasets:[{label:'Baki Debet', data:topDebet.map(c=>c.totalBakiDebet), backgroundColor:'#0856c3', borderRadius:4}]},
+    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>'Rp '+c.parsed.x.toLocaleString('id-ID')}}}, scales:{x:{ticks:{callback:v=>'Rp '+(v/1e6).toFixed(0)+'jt'}}}}
+  });
+
+  const topFunding = custs.slice().sort((a,b)=>b.totalFunding-a.totalFunding).slice(0,10);
+  State.charts.topFunding = new Chart($('chartTopFunding'), {
+    type:'bar',
+    data:{labels:topFunding.map(c=>c.nama.length>22?c.nama.slice(0,20)+'…':c.nama), datasets:[{label:'Total Funding', data:topFunding.map(c=>c.totalFunding), backgroundColor:'#2e78d6', borderRadius:4}]},
+    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>'Rp '+c.parsed.x.toLocaleString('id-ID')}}}, scales:{x:{ticks:{callback:v=>'Rp '+(v/1e6).toFixed(0)+'jt'}}}}
+  });
+
+  const segMap = {};
+  custs.forEach(c => c.loans.forEach(l => { const s = cleanStr(l.descSegmenLv1)||'Tidak Diketahui'; segMap[s]=(segMap[s]||0)+1; }));
+  State.charts.segmen = new Chart($('chartSegmen'), {
+    type:'pie',
+    data:{labels:Object.keys(segMap), datasets:[{data:Object.values(segMap), backgroundColor:CBLUE.concat(['#063f8f','#7fb8e6']), borderWidth:2, borderColor:'#fff'}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{font:{size:11}}}}}
+  });
+}
+
+/* ===================================================================
+   EXPORT TO EXCEL
+   ================================================================= */
+function exportToExcel(){
+  try{
+    showToast('Menyiapkan file Excel...', 'info');
+    const wb = XLSX.utils.book_new();
+    const custs = [...State.customers.values()];
+
+    const summaryRows = custs.map(c => [
+      c.nama, c.cif, c.uker, c.worstKol, c.loans.length, c.totalPlafon, c.totalBakiDebet, c.totalTunggakan,
+      c.tabungan.length, c.totalTabungan, c.giro.length, c.totalGiro, c.deposito.length, c.totalDeposito,
+      c.totalFunding, c.edc.length+c.qris.length, c.totalMerchantVolume,
+      c.walletShare!=null ? +(c.walletShare*100).toFixed(2) : '', c.oppCount, c.opportunities.map(k=>OPP_DEFS[k].label).join('; ')
+    ]);
+    const summaryHeader = ['Nama Nasabah','CIF','Unit Kerja','Kol Terburuk','Jml Fasilitas','Total Plafon','Total Baki Debet','Total Tunggakan',
+      'Jml Tabungan','Saldo Tabungan','Jml Giro','Saldo Giro','Jml Deposito','Nominal Deposito','Total Funding','Jml Merchant','Volume Merchant',
+      'Wallet Share (%)','Jml Peluang','Detail Peluang'];
+    const wsSummary = XLSX.utils.aoa_to_sheet([summaryHeader, ...summaryRows]);
+    wsSummary['!cols'] = summaryHeader.map(h=>({wch:Math.max(14,h.length+2)}));
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Customer 360 Summary');
+
+    Object.keys(OPP_DEFS).forEach(k => {
+      const list = State.oppCategories[k] || [];
+      const rows = list.map(c => [c.nama, c.cif, c.uker, c.worstKol, c.totalBakiDebet, c.totalFunding, c.loans[0]?.pnPengelola||'']);
+      const ws = XLSX.utils.aoa_to_sheet([['Nama','CIF','Unit Kerja','Kol','Baki Debet','Total Funding','RM Pengelola'], ...rows]);
+      XLSX.utils.book_append_sheet(wb, ws, OPP_DEFS[k].label.slice(0,31));
+    });
+
+    const filename = `Customer360_${new Date().toISOString().slice(0,10)}.xlsx`;
+    XLSX.writeFile(wb, filename);
+    showToast('File Excel berhasil diunduh!', 'success');
+  } catch(e){
+    console.error(e);
+    showToast('Gagal mengekspor Excel: ' + e.message, 'error');
+  }
+}
+
+/* ===================================================================
+   MAIN PROCESS
+   ================================================================= */
+async function processAll(){
+  $('progressCard').classList.add('show');
+  const setP = (pct, detail) => { $('progressFill').style.width=pct+'%'; $('progressPercent').textContent=Math.round(pct)+'%'; if(detail) $('progressDetail').textContent=detail; };
+  try{
+    setP(10, 'Menyusun basis nasabah dari LW321...');
+    await new Promise(r=>setTimeout(r,80));
+    buildCustomers();
+    setP(55, `Ditemukan ${State.customers.size} nasabah existing. Menyusun peluang bisnis...`);
+    await new Promise(r=>setTimeout(r,80));
+    computeOppCategories();
+    setP(75, 'Menyusun visualisasi...');
+    await new Promise(r=>setTimeout(r,80));
+
+    renderStats();
+    renderUkerFilterOptions();
+    applyCustFilters();
+    renderOppGrid();
+    renderCharts();
+
+    setP(100, 'Selesai!');
+    await new Promise(r=>setTimeout(r,200));
+    $('progressCard').classList.remove('show');
+    $('uploadSection').style.display = 'none';
+    $('dashboard').classList.add('show');
+    $('headerActions').style.display = 'flex';
+    showToast(`Dashboard siap — ${State.customers.size} nasabah, ${State.raw['LW321'].length} fasilitas kredit.`, 'success');
+  } catch(e){
+    console.error(e);
+    $('progressCard').classList.remove('show');
+    showToast('Terjadi kesalahan: ' + e.message, 'error');
+  }
+}
+
+/* ===================================================================
+   EVENTS
+   ================================================================= */
+renderSlots();
+setupGlobalDrop();
+
+$('btnProcess').addEventListener('click', processAll);
+$('btnExportExcel').addEventListener('click', exportToExcel);
+$('btnPrint').addEventListener('click', () => { showToast('Membuka dialog print...', 'info'); setTimeout(()=>window.print(), 200); });
+$('btnReset').addEventListener('click', () => { if(confirm('Yakin ingin upload ulang? Data saat ini akan dihapus.')) location.reload(); });
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    $('panel-'+t.dataset.panel).classList.add('active');
+  });
+});
+
+['custSearch','custFilterKol','custFilterProduk','custFilterUker'].forEach(id => {
+  $(id).addEventListener('input', applyCustFilters);
+  $(id).addEventListener('change', applyCustFilters);
+});
+$('btnClearCustFilter').addEventListener('click', () => {
+  $('custSearch').value=''; $('custFilterKol').value=''; $('custFilterProduk').value=''; $('custFilterUker').value='';
+  applyCustFilters();
+});
+document.addEventListener('click', e => {
+  const th = e.target.closest('th.sortable');
+  if(!th || !$('custTable').contains(th)) return;
+  const key = th.dataset.sort;
+  if(State.sortKey===key) State.sortDir=-State.sortDir; else { State.sortKey=key; State.sortDir=1; }
+  document.querySelectorAll('#custTable th.sortable').forEach(x=>x.classList.remove('sort-asc','sort-desc'));
+  th.classList.add(State.sortDir>0?'sort-asc':'sort-desc');
+  applyCustFilters();
+});
+</script>
+</body>
+</html>

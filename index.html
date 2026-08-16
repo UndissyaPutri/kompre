@@ -271,7 +271,7 @@ table.data-table th:last-child,table.data-table td:last-child{border-right:none}
 table.data-table tbody tr:nth-child(even) td{background:var(--surface-alt)}
 table.data-table tr:hover td{background:var(--accent-soft)}
 table.data-table tr.expanded td{background:var(--accent-soft)}
-table.data-table .num{text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.data-table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;padding-right:26px}
 table.data-table .ctr{text-align:center}
 .row-toggle{
   background:none;border:none;cursor:pointer;color:var(--brand);
@@ -518,6 +518,10 @@ table.data-table .ctr{text-align:center}
           <div class="chart-canvas-wrap"><canvas id="chartProduk"></canvas></div>
         </div>
         <div class="chart-card">
+          <h3>Kepemilikan Produk Nasabah Existing (Baki Debet)</h3>
+          <div class="chart-canvas-wrap"><canvas id="chartProdukBaki"></canvas></div>
+        </div>
+        <div class="chart-card">
           <h3>Top 10 Nasabah — Baki Debet Pinjaman</h3>
           <div class="chart-canvas-wrap"><canvas id="chartTopDebet"></canvas></div>
         </div>
@@ -525,7 +529,7 @@ table.data-table .ctr{text-align:center}
           <h3>Top 10 Nasabah — Total Funding (Tabungan+Giro+Deposito)</h3>
           <div class="chart-canvas-wrap"><canvas id="chartTopFunding"></canvas></div>
         </div>
-        <div class="chart-card" style="grid-column:1/-1">
+        <div class="chart-card">
           <h3>Distribusi Segmen Pinjaman</h3>
           <div class="chart-canvas-wrap"><canvas id="chartSegmen"></canvas></div>
         </div>
@@ -1145,7 +1149,6 @@ function renderStats(){
     {label:'Total Baki Debet', value:fmtRupiah(totalBaki), sub:'outstanding aktif', cls:''},
     {label:'Total Funding (T+G+D)', value:fmtRupiah(totalFunding), sub:'tabungan + giro + deposito', cls:'success'},
     {label:'Nasabah dengan Merchant', value:custMerchant, sub:'punya EDC dan/atau QRIS', cls:''},
-    {label:'Nasabah dengan Peluang', value:custWithOpp, sub:'terdeteksi ≥1 peluang cross-sell', cls:'warning'},
   ];
   $('statsGrid').innerHTML = cards.map(c => `
     <div class="stat-card ${c.cls}">
@@ -1414,6 +1417,24 @@ function renderCharts(){
     type:'doughnut',
     data:{labels:Object.keys(prodCount), datasets:[{data:Object.values(prodCount), backgroundColor:CBLUE, borderWidth:2, borderColor:'#fff'}]},
     options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{font:{size:11}}}}}
+  });
+
+  // Same product-ownership breakdown, but sized by baki debet (outstanding pinjaman)
+  // of the owning customers instead of headcount — shows which product-holding
+  // segment actually carries the most lending exposure.
+  const prodBaki = {Tabungan:0,Giro:0,Deposito:0,EDC:0,QRIS:0};
+  custs.forEach(c => {
+    if(c.tabungan.length) prodBaki.Tabungan += c.totalBakiDebet;
+    if(c.giro.length) prodBaki.Giro += c.totalBakiDebet;
+    if(c.deposito.length) prodBaki.Deposito += c.totalBakiDebet;
+    if(c.edc.length) prodBaki.EDC += c.totalBakiDebet;
+    if(c.qris.length) prodBaki.QRIS += c.totalBakiDebet;
+  });
+  State.charts.produkBaki = new Chart($('chartProdukBaki'), {
+    type:'doughnut',
+    data:{labels:Object.keys(prodBaki), datasets:[{data:Object.values(prodBaki), backgroundColor:CBLUE, borderWidth:2, borderColor:'#fff'}]},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom', labels:{font:{size:11}}}, tooltip:{callbacks:{label:ctx=>ctx.label+': Rp '+ctx.parsed.toLocaleString('id-ID')}}}}
   });
 
   const topDebet = custs.slice().sort((a,b)=>b.totalBakiDebet-a.totalBakiDebet).slice(0,10);

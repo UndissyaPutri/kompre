@@ -244,9 +244,11 @@ table.data-table th.sortable::after{content:'⇅';margin-left:6px;opacity:.6;fon
 table.data-table th.sort-asc::after{content:'▲';opacity:1;color:var(--accent)}
 table.data-table th.sort-desc::after{content:'▼';opacity:1;color:var(--accent)}
 table.data-table td{
-  padding:10px 12px;border-bottom:1px solid var(--border);
-  vertical-align:top;
+  padding:10px 14px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);
+  vertical-align:top;white-space:nowrap;
 }
+table.data-table th{border-right:1px solid rgba(255,255,255,.25)}
+table.data-table th:last-child,table.data-table td:last-child{border-right:none}
 table.data-table tbody tr:nth-child(even) td{background:var(--surface-alt)}
 table.data-table tr:hover td{background:var(--accent-soft)}
 table.data-table tr.expanded td{background:var(--accent-soft)}
@@ -317,7 +319,7 @@ table.data-table .num{text-align:right;font-variant-numeric:tabular-nums;white-s
 }
 .opp-card:hover{border-color:var(--brand-mid)}
 .opp-card.active{border-color:var(--brand);border-width:2px;background:var(--accent-soft)}
-.opp-card .opp-icon{font-size:22px;margin-bottom:6px}
+.opp-card .opp-icon{font-size:11px;font-weight:800;letter-spacing:.5px;color:var(--brand-dark);background:var(--accent);display:inline-block;padding:2px 8px;border-radius:3px;margin-bottom:8px}
 .opp-card .opp-count{font-size:26px;font-weight:800;color:var(--brand-dark);line-height:1}
 .opp-card .opp-label{font-size:12px;font-weight:700;color:var(--text);margin-top:6px}
 .opp-card .opp-sub{font-size:11px;color:var(--text-muted);margin-top:3px;line-height:1.4}
@@ -362,9 +364,37 @@ table.data-table .num{text-align:right;font-variant-numeric:tabular-nums;white-s
 .diag-row{padding:6px 12px;background:var(--surface-alt);border-radius:4px;margin-bottom:4px;font-size:12.5px}
 
 @media (max-width:768px){
-  .filter-bar{grid-template-columns:1fr}
+  .container{padding:14px}
+  .header-inner{flex-direction:column;align-items:flex-start;gap:10px}
   .header-actions{width:100%}
-  .container{padding:16px}
+  .header-actions .btn{flex:1;justify-content:center}
+  .upload-intro{padding:16px 18px}
+  .upload-intro h2{font-size:17px}
+  .slot-grid{grid-template-columns:1fr}
+  .upload-actions{flex-direction:column;align-items:stretch}
+  .upload-actions .btn{width:100%;justify-content:center}
+  .global-filter-bar{flex-direction:column;align-items:stretch}
+  .gf-pill{min-width:0;width:100%}
+  .filter-bar{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tab{flex:0 0 auto}
+  .opp-grid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+  .detail-content{padding:14px 16px}
+  .customer-hero{padding:16px}
+  .customer-hero .cname{font-size:18px}
+  .panel-body{padding:14px}
+  .charts-grid{grid-template-columns:1fr}
+  .chart-canvas-wrap{height:240px}
+}
+
+@media (max-width:480px){
+  .brand-text h1{font-size:16px}
+  .brand-text p{font-size:11px}
+  .btn{padding:8px 12px;font-size:12px}
+  .stat-value{font-size:18px}
+  table.data-table{font-size:11.5px}
+  .slot-card{padding:14px}
 }
 
 @media print{
@@ -447,7 +477,7 @@ table.data-table .num{text-align:right;font-variant-numeric:tabular-nums;white-s
     <div class="tabs no-print" role="tablist">
       <button class="tab active" data-panel="overview">📊 Ringkasan</button>
       <button class="tab" data-panel="customers">👤 Customer 360<span class="badge" id="badgeCust">0</span></button>
-      <button class="tab" data-panel="opportunity">💡 Peluang Bisnis<span class="badge" id="badgeOpp">0</span></button>
+      <button class="tab" data-panel="opportunity">Peluang Bisnis<span class="badge" id="badgeOpp">0</span></button>
     </div>
 
     <!-- TAB: OVERVIEW -->
@@ -528,7 +558,7 @@ table.data-table .num{text-align:right;font-variant-numeric:tabular-nums;white-s
     <div class="tab-panel" id="panel-opportunity">
       <div class="panel">
         <div class="panel-header">
-          <div class="panel-title">💡 Business Opportunity — Recommendation Engine</div>
+          <div class="panel-title">Business Opportunity — Recommendation Engine</div>
           <div class="panel-actions"><span style="font-size:11.5px;color:var(--text-muted)">Klik kategori untuk melihat daftar nasabah</span></div>
         </div>
         <div class="panel-body">
@@ -1003,11 +1033,11 @@ function buildCustomers(){
    OPPORTUNITY CATEGORY DEFINITIONS
    ================================================================= */
 const OPP_DEFS = {
-  noTabungan: {icon:'💳', label:'Cross-sell Tabungan', sub:'Nasabah pinjaman belum punya rekening tabungan di BRI.', rec:'Tawarkan pembukaan rekening tabungan sebagai basis penampungan transaksi harian dan monitoring cashflow nasabah.'},
-  noGiro:     {icon:'🏦', label:'Cross-sell Giro', sub:'Nasabah pinjaman belum punya rekening giro.', rec:'Untuk nasabah segmen usaha, giro memudahkan transaksi bisnis dan memperkuat monitoring arus kas pasca pencairan kredit.'},
-  noDeposito: {icon:'💰', label:'Edukasi Deposito', sub:'Dana funding cukup besar (>Rp 50 juta) namun belum ditempatkan di deposito.', rec:'Dana mengendap besar berpotensi dikonversi menjadi deposito untuk optimalisasi dana pihak ketiga (DPK) dan loyalitas nasabah.'},
-  noMerchant: {icon:'📱', label:'Ekosistem EDC/QRIS', sub:'Nasabah belum memiliki merchant EDC maupun QRIS.', rec:'Peluang akuisisi ekosistem merchant (EDC/QRIS) khususnya untuk nasabah dengan usaha produktif, untuk memperluas fee based income & data transaksi.'},
-  kolWatch:   {icon:'⚠️', label:'Monitoring Kolektibilitas', sub:'Kolektibilitas terburuk berada di Kol 2 ke atas.', rec:'Perlu monitoring komitmen pembayaran dan penelusuran penyebab tunggakan; koordinasi RM SME & RM FT untuk joint OTS.'},
+  noTabungan: {tag:'TABUNGAN', label:'Cross-sell Tabungan', sub:'Nasabah pinjaman belum punya rekening tabungan di BRI.', rec:'Tawarkan pembukaan rekening tabungan sebagai basis penampungan transaksi harian dan monitoring cashflow nasabah.'},
+  noGiro:     {tag:'GIRO', label:'Cross-sell Giro', sub:'Nasabah pinjaman belum punya rekening giro.', rec:'Untuk nasabah segmen usaha, giro memudahkan transaksi bisnis dan memperkuat monitoring arus kas pasca pencairan kredit.'},
+  noDeposito: {tag:'DEPOSITO', label:'Edukasi Deposito', sub:'Dana funding cukup besar (>Rp 50 juta) namun belum ditempatkan di deposito.', rec:'Dana mengendap besar berpotensi dikonversi menjadi deposito untuk optimalisasi dana pihak ketiga (DPK) dan loyalitas nasabah.'},
+  noMerchant: {tag:'EDC/QRIS', label:'Ekosistem EDC/QRIS', sub:'Nasabah belum memiliki merchant EDC maupun QRIS.', rec:'Peluang akuisisi ekosistem merchant (EDC/QRIS) khususnya untuk nasabah dengan usaha produktif, untuk memperluas fee based income & data transaksi.'},
+  kolWatch:   {tag:'KOL', label:'Monitoring Kolektibilitas', sub:'Kolektibilitas terburuk berada di Kol 2 ke atas.', rec:'Perlu monitoring komitmen pembayaran dan penelusuran penyebab tunggakan; koordinasi RM SME & RM FT untuk joint OTS.'},
 };
 
 function computeOppCategories(){
@@ -1052,6 +1082,22 @@ function applyGlobalFilter(){
   applyCustFilters();
   renderOppGrid();
   renderCharts();
+}
+
+/* Pre-selects the filter to a specific branch on first load so the dashboard
+   opens already scoped to the user's own unit kerja, instead of "Semua".
+   Falls back silently (stays on "Semua") if no match is found in the data. */
+function applyDefaultRegionSelection(kanwilHint, kancaHint){
+  const kanwilOpt = [...$('gfKanwil').options].find(o => o.value && o.value.toLowerCase().includes(kanwilHint.toLowerCase()));
+  if(kanwilOpt){
+    $('gfKanwil').value = kanwilOpt.value;
+    refreshKancaOptions();
+  }
+  const kancaOpt = [...$('gfKanca').options].find(o => o.value && o.value.toLowerCase().includes(kancaHint.toLowerCase()));
+  if(kancaOpt){
+    $('gfKanca').value = kancaOpt.value;
+    refreshUkerOptions();
+  }
 }
 
 /* ===================================================================
@@ -1131,7 +1177,7 @@ function oppPills(c){
   if(!c.opportunities.length) return '<span style="color:var(--text-soft)">–</span>';
   return c.opportunities.map(k => {
     const def = OPP_DEFS[k];
-    return `<span class="badge-pill opp-badge" title="${escapeHtml(def.label)} — ${escapeHtml(def.sub)}" style="margin-right:3px">${def.icon}</span>`;
+    return `<span class="badge-pill opp-badge" title="${escapeHtml(def.label)} — ${escapeHtml(def.sub)}" style="margin-right:3px">${def.tag}</span>`;
   }).join('');
 }
 
@@ -1208,8 +1254,8 @@ function renderCustomerDetail(c){
     ...c.qris.map(m => `<tr><td>QRIS</td><td>${escapeHtml(m.namaMerchant)}</td><td>-</td><td class="num">${fmtNum(m._trx)}</td><td class="num">${fmtRupiah(m._volume)}</td><td>${escapeHtml(combinePn(m.pn, m.pnNama))}</td></tr>`),
   ].join('') || '<tr><td colspan="6" class="empty">Belum ada merchant EDC/QRIS.</td></tr>';
 
-  const oppHtml = c.opportunities.length ? c.opportunities.map(k => `<div class="rec-note"><strong>${OPP_DEFS[k].icon} ${OPP_DEFS[k].label}:</strong> ${OPP_DEFS[k].rec}</div>`).join('') 
-    : '<div class="rec-note">✅ Tidak ada peluang cross-sell yang terdeteksi otomatis untuk nasabah ini pada periode data saat ini.</div>';
+  const oppHtml = c.opportunities.length ? c.opportunities.map(k => `<div class="rec-note"><strong>${OPP_DEFS[k].label}:</strong> ${OPP_DEFS[k].rec}</div>`).join('') 
+    : '<div class="rec-note">Tidak ada peluang cross-sell yang terdeteksi otomatis untuk nasabah ini pada periode data saat ini.</div>';
 
   const covPct = c.fundingCoverage != null ? Math.min(150, c.fundingCoverage*100) : 0;
 
@@ -1242,23 +1288,23 @@ function renderCustomerDetail(c){
         <div class="wallet-bar-track"><div class="wallet-bar-fill" style="width:${covPct}%"></div></div>
       </div>
 
-      <div class="detail-section-title">💡 Business Opportunity — Rekomendasi</div>
+      <div class="detail-section-title">Business Opportunity — Rekomendasi</div>
       ${oppHtml}
 
       <div class="detail-section-title">Fasilitas Kredit (${c.loans.length})</div>
       <div class="table-wrap"><table class="data-table"><thead><tr><th>No Rekening</th><th>Jenis</th><th>Kol</th><th class="num">Plafon</th><th class="num">Baki Debet</th><th class="num">Tunggakan</th><th>Rate</th><th>Jatuh Tempo</th><th>RM Pengelola Kredit</th></tr></thead><tbody>${loansRows}</tbody></table></div>
 
       <div class="detail-section-title">Tabungan (${c.tabungan.length})</div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th>No Rekening</th><th>Produk</th><th class="num">Saldo</th><th>Tgl Buka</th><th>RM Pengelola / RM FT</th></tr></thead><tbody>${tabunganRows}</tbody></table></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>No Rekening</th><th>Produk</th><th class="num">Saldo</th><th>Tgl Buka</th><th>RM Pengelola FT</th></tr></thead><tbody>${tabunganRows}</tbody></table></div>
 
       <div class="detail-section-title">Giro (${c.giro.length})</div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th>No Rekening</th><th>Produk</th><th class="num">Saldo</th><th>Tgl Buka</th><th>RM Pengelola / RM FT</th></tr></thead><tbody>${giroRows}</tbody></table></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>No Rekening</th><th>Produk</th><th class="num">Saldo</th><th>Tgl Buka</th><th>RM Pengelola FT</th></tr></thead><tbody>${giroRows}</tbody></table></div>
 
       <div class="detail-section-title">Deposito (${c.deposito.length}) — dicocokkan berdasarkan nama (tanpa CIF)</div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th>No Rekening</th><th class="num">Nominal</th><th>Rate</th><th>Jatuh Tempo</th><th>RM Pengelola / RM FT</th><th>Kualitas Match</th></tr></thead><tbody>${depositoRows}</tbody></table></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>No Rekening</th><th class="num">Nominal</th><th>Rate</th><th>Jatuh Tempo</th><th>RM Pengelola FT</th><th>Kualitas Match</th></tr></thead><tbody>${depositoRows}</tbody></table></div>
 
       <div class="detail-section-title">Merchant EDC / QRIS (${c.edc.length + c.qris.length})</div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th>Tipe</th><th>Nama Merchant</th><th>MID</th><th class="num">Transaksi</th><th class="num">Volume</th><th>RM Pengelola / RM FT</th></tr></thead><tbody>${merchantRows}</tbody></table></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Tipe</th><th>Nama Merchant</th><th>MID</th><th class="num">Transaksi</th><th class="num">Volume</th><th>RM Pengelola FT</th></tr></thead><tbody>${merchantRows}</tbody></table></div>
     </div>
   `;
 }
@@ -1275,7 +1321,7 @@ function renderOppGrid(){
     const isEmpty = list.length === 0;
     return `
       <div class="opp-card ${isEmpty?'disabled':''}" data-opp="${k}" onclick="${isEmpty?'':`selectOpp('${k}')`}">
-        <div class="opp-icon">${def.icon}</div>
+        <div class="opp-icon">${def.tag}</div>
         <div class="opp-count">${list.length}</div>
         <div class="opp-label">${def.label}</div>
         <div class="opp-sub">${def.sub}</div>
@@ -1306,7 +1352,7 @@ function selectOpp(k){
     </tr>
   `).join('');
   $('oppDetail').innerHTML = `
-    <div class="rec-note"><strong>${def.icon} ${def.label}</strong> — ${def.rec}</div>
+    <div class="rec-note"><strong>${def.label}</strong> — ${def.rec}</div>
     <div class="table-wrap"><table class="data-table"><thead><tr>
       <th>Nama Nasabah</th><th>CIF</th><th>Unit Kerja</th><th class="num">Kol</th><th class="num">Baki Debet</th><th class="num">Total Funding</th><th>RM Pengelola Kredit</th>
     </tr></thead><tbody>${rows || '<tr><td colspan="7" class="empty">Tidak ada nasabah yang cocok.</td></tr>'}</tbody></table></div>
@@ -1408,7 +1454,136 @@ function exportToExcel(){
 }
 
 /* ===================================================================
-   MAIN PROCESS
+   STATIC DUMMY DATA (currently UNUSED — kept dormant for reference)
+   ---------------------------------------------------------------
+   This block can generate a fixed, deterministic set of sample customers
+   for demo purposes. It is NOT called anywhere right now — the app uses
+   the real upload-and-process flow (#uploadSection + processAll()) as
+   the active path. To go back to dummy/demo mode, call
+   loadDummyDashboard() instead of relying on the upload flow.
+   ================================================================= */
+const REGIONS = [
+  {kanwil:'Kanwil Jakarta 1', kanca:'KC Jakarta Sudirman', ukers:['KC Jakarta Sudirman','KCP Jakarta Thamrin','KCP Jakarta Kebon Sirih']},
+  {kanwil:'Kanwil Jakarta 1', kanca:'KC Jakarta Kelapa Gading', ukers:['KC Jakarta Kelapa Gading','KCP Jakarta Sunter']},
+  {kanwil:'Kanwil Semarang', kanca:'KC Semarang Pandanaran', ukers:['KC Semarang Pandanaran','KCP Semarang Simpang Lima']},
+  {kanwil:'Kanwil Semarang', kanca:'KC Brigjen Sudiarto', ukers:['KC Brigjen Sudiarto','KCP Brigjen Sudiarto Genuk']},
+  {kanwil:'Kanwil Jawa Timur', kanca:'KC Surabaya Kertajaya', ukers:['KC Surabaya Kertajaya','KCP Surabaya Rungkut']},
+  {kanwil:'Kanwil Jawa Barat', kanca:'KC Bandung Asia Afrika', ukers:['KC Bandung Asia Afrika','KCP Bandung Dago']},
+  {kanwil:'Kanwil Sumatera Utara', kanca:'KC Medan Putri Hijau', ukers:['KC Medan Putri Hijau']},
+  {kanwil:'Kanwil Sulawesi Selatan', kanca:'KC Makassar Sudirman', ukers:['KC Makassar Sudirman']},
+];
+const DUMMY_NAMES = [
+  'SULISTIONO','BAMBANG TRI SUGIARTO','SITI NURHALIZA','AGUS SETIAWAN','DEWI KARTIKA',
+  'MUKHTAR ALWI','IMAM MOCHNI','RATNA SARI DEWI','HALIMA ZAHRA','JOKO PURNOMO',
+  'PT SUMBER MAKMUR SEJAHTERA','EKO PRASETYO','MEGA WATI','ANDI WIJAYA','RIZKY RAMADHAN',
+  'CV BERKAH JAYA ABADI','FITRI HANDAYANI','YUSUF ABDULLAH','NURUL AINI','HENDRA GUNAWAN',
+  'PT MITRA USAHA NIAGA','LIA AMELIA','TAUFIK HIDAYAT','SRI WAHYUNI','DEDI KURNIAWAN',
+  'UD SUKSES MANDIRI','PUTRI MAHARANI','ARIF RAHMAN','INDAH PERMATA SARI','WAHYU NUGROHO',
+  'PT CIPTA KARYA PERSADA','RUDI HARTONO',
+];
+const DUMMY_JENIS = ['Modal Kerja','Investasi','Kredit Multiguna','KUR Mikro','KUR Kecil','Briguna Karya'];
+const DUMMY_SEGMEN = ['Mikro','Kecil','Menengah','Konsumer'];
+const DUMMY_RM = [
+  '00156006 - AFUN META WIJAYA','00203981 - DIAN PRATIWI','00318842 - BAGUS SANTOSO',
+  '00427710 - MUTIARA SHAFA NURAINI','00512233 - RIZAL FEBRIAN','00609981 - CITRA AYU LESTARI',
+];
+const DUMMY_KOLS = [1,1,1,2,1,1,1,3,1,1,2,1,1,1,4,1,2,1,1,1,5,1,1,2,1,1,3,1,1,1,2,1];
+
+function makeDummyLoan(i, kol, plafon, baki, rm){
+  return {
+    noRekening: '0435010000' + String(70000+i).padStart(6,'0'),
+    description: DUMMY_JENIS[i % DUMMY_JENIS.length],
+    lnType:'FV', _kol:kol, _plafon:plafon, _baki:baki,
+    _tunggakan: kol>=2 ? Math.round(baki*0.015*kol) : 0,
+    rate:(9 + (i%6)).toFixed(2), tglJatuhTempo:'30/06/2029',
+    pnPengelola:rm, descSegmenLv1:DUMMY_SEGMEN[i % DUMMY_SEGMEN.length],
+    flagRestruk: kol>=4 ? 'Y' : 'N',
+  };
+}
+function makeDummyTabungan(i, balance, rm){
+  return {accountNumber:'43501000'+(500000+i), prodCode:'BritAma', _balance:balance, openDt:'01/01/2022', pnPengelola:rm};
+}
+function makeDummyGiro(i, balance, rm){
+  return {accountNumber:'43501000'+(900000+i), productCode:'Giro Perorangan', _balance:balance, openDate:'15/03/2021', pnPengelola:rm};
+}
+function makeDummyDeposito(i, principal, rm, matchType){
+  return {acctno:'43501000'+(300000+i), _principal:principal, intRate:(4.5+(i%3)*0.25).toFixed(2), matDt:'12/12/2026', pnRmDana:rm, _matchType:matchType};
+}
+function makeDummyEdc(i, volume, trx, pnUser, namaUser){
+  return {namaMerchant:`WARUNG ${['SEJAHTERA','BAROKAH','MAKMUR','JAYA','SENTOSA'][i%5]} ${i+1}`, mid:'0016'+(130000+i), _trx:trx, _volume:volume, pnUser, namaUser};
+}
+function makeDummyQris(i, volume, trx, pn, pnNama){
+  return {namaMerchant:`TOKO ${['BAROKAH','SEJAHTERA','MAKMUR','SENTOSA','JAYA'][i%5]} ${i+1}`, _trx:trx, _volume:volume, pn, pnNama};
+}
+
+function generateDummyCustomers(){
+  const list = [];
+  const N = DUMMY_NAMES.length;
+  for(let i=0; i<N; i++){
+    const region = REGIONS[i % REGIONS.length];
+    const uker = region.ukers[i % region.ukers.length];
+    const nama = DUMMY_NAMES[i];
+    const cif = 'D' + String(100000+i);
+    const kol = DUMMY_KOLS[i % DUMMY_KOLS.length];
+    const plafon = (150 + (i*53)%900) * 1000000;
+    const baki = Math.round(plafon * (0.35 + ((i*17)%50)/100));
+    const rm = DUMMY_RM[i % DUMMY_RM.length];
+    const loan = makeDummyLoan(i, kol, plafon, baki, rm);
+
+    const hasTabungan = i % 5 !== 0;
+    const hasGiro = i % 3 === 0;
+    const hasMerchant = i % 4 === 0;
+    const hasDeposito = i % 7 === 0;
+
+    const tabungan = hasTabungan ? [makeDummyTabungan(i, Math.round(baki*(0.05+(i%4)*0.03)), rm)] : [];
+    const giro = hasGiro ? [makeDummyGiro(i, Math.round(baki*(0.1+(i%3)*0.05)), rm)] : [];
+    const deposito = hasDeposito ? [makeDummyDeposito(i, Math.round(baki*0.2), rm, i%2===0?'name-exact':'name-fuzzy')] : [];
+    const edc = [], qris = [];
+    if(hasMerchant){
+      if(i%8===0) edc.push(makeDummyEdc(i, Math.round(plafon*0.05), 40+i, '00'+(400000+i), 'STAFF EDC '+(i+1)));
+      else qris.push(makeDummyQris(i, Math.round(plafon*0.03), 20+i, ''+(370000+i), 'STAFF QRIS '+(i+1)));
+    }
+
+    const c = {cif, nama, kanwil:region.kanwil, kanca:region.kanca, uker, loans:[loan], tabungan, giro, deposito, edc, qris};
+    c.totalPlafon = plafon;
+    c.totalBakiDebet = baki;
+    c.totalTunggakan = loan._tunggakan;
+    c.worstKol = kol;
+    c.hasRestruk = loan.flagRestruk === 'Y';
+    c.totalTabungan = tabungan.reduce((s,t)=>s+t._balance,0);
+    c.totalGiro = giro.reduce((s,t)=>s+t._balance,0);
+    c.totalDeposito = deposito.reduce((s,t)=>s+t._principal,0);
+    c.totalFunding = c.totalTabungan + c.totalGiro + c.totalDeposito;
+    c.totalMerchantVolume = edc.reduce((s,t)=>s+t._volume,0) + qris.reduce((s,t)=>s+t._volume,0);
+    c.totalMerchantTrx = edc.reduce((s,t)=>s+t._trx,0) + qris.reduce((s,t)=>s+t._trx,0);
+    c.fundingCoverage = c.totalBakiDebet>0 ? (c.totalFunding/c.totalBakiDebet) : null;
+
+    const opp = [];
+    if(c.tabungan.length===0) opp.push('noTabungan');
+    if(c.giro.length===0) opp.push('noGiro');
+    if(c.deposito.length===0 && c.totalFunding>50000000) opp.push('noDeposito');
+    if(c.edc.length===0 && c.qris.length===0) opp.push('noMerchant');
+    if(c.worstKol>=2) opp.push('kolWatch');
+    c.opportunities = opp;
+    c.oppCount = opp.length;
+
+    list.push(c);
+  }
+  return list;
+}
+
+function loadDummyDashboard(){
+  State.customers = new Map(generateDummyCustomers().map(c => [c.cif, c]));
+  populateGlobalFilterOptions();
+  applyDefaultRegionSelection('Semarang', 'Brigjen Sudiarto');
+  applyGlobalFilter();
+  $('uploadSection').style.display = 'none';
+  $('dashboard').classList.add('show');
+  $('headerActions').style.display = 'flex';
+}
+
+/* ===================================================================
+   MAIN PROCESS (kept intact for when real file upload is re-enabled)
    ================================================================= */
 async function processAll(){
   $('progressCard').classList.add('show');
@@ -1424,12 +1599,8 @@ async function processAll(){
     await new Promise(r=>setTimeout(r,80));
 
     populateGlobalFilterOptions();
-    State.globalFilter = {kanwil:'', kanca:'', uker:''};
-    $('gfHint').textContent = `Menampilkan ${State.customers.size.toLocaleString('id-ID')} dari ${State.customers.size.toLocaleString('id-ID')} nasabah`;
-    renderStats();
-    applyCustFilters();
-    renderOppGrid();
-    renderCharts();
+    applyDefaultRegionSelection('Semarang', 'Brigjen Sudiarto');
+    applyGlobalFilter();
 
     setP(100, 'Selesai!');
     await new Promise(r=>setTimeout(r,200));
@@ -1448,6 +1619,9 @@ async function processAll(){
 /* ===================================================================
    EVENTS
    ================================================================= */
+// Upload flow is kept wired up (renderSlots/setupGlobalDrop/processAll) so it
+// can be re-enabled later on request — for now the dashboard loads directly
+// with the static dummy dataset below instead of waiting for a file upload.
 renderSlots();
 setupGlobalDrop();
 

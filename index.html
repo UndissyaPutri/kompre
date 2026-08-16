@@ -77,6 +77,10 @@ body{
 .container{max-width:1500px;margin:0 auto;padding:24px 28px}
 
 /* ===================== UPLOAD ===================== */
+/* Centers the entire upload flow (intro + slots + action) as one tidy column
+   instead of stretching edge-to-edge on wide screens. */
+.upload-wrap{max-width:920px;margin:0 auto}
+
 .upload-intro{
   background:var(--surface);border-radius:var(--radius-lg);padding:22px 26px;
   margin-bottom:18px;box-shadow:var(--shadow-sm);border:1px solid var(--border);
@@ -112,8 +116,23 @@ body{
 }
 .slot-pick:hover{background:var(--accent-soft);border-color:var(--brand)}
 
-.upload-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:22px}
+.upload-actions{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:22px;text-align:center}
 .upload-hint{font-size:11.5px;color:var(--text-soft)}
+
+/* The main call-to-action: dull gray + not-allowed while LW321 is missing,
+   turns solid blue with a visible shadow the moment it becomes clickable
+   so it clearly invites the click. */
+#btnProcess{
+  padding:14px 36px;font-size:15px;font-weight:700;border-radius:10px;
+  transition:background .15s, box-shadow .15s, transform .1s;
+}
+#btnProcess:disabled{
+  background:#d7dee6;color:#8592a1;opacity:1;cursor:not-allowed;box-shadow:none;
+}
+#btnProcess:not(:disabled){
+  background:var(--brand);color:#fff;box-shadow:0 4px 14px rgba(8,86,195,.4);
+}
+#btnProcess:not(:disabled):hover{background:var(--brand-dark);transform:translateY(-1px)}
 
 .progress-card{
   background:var(--surface);border-radius:var(--radius);padding:20px;
@@ -233,7 +252,7 @@ table.data-table{
 table.data-table th{
   position:sticky;top:0;z-index:5;
   background:var(--brand-dark);
-  text-align:left;padding:9px 12px;
+  text-align:center;padding:9px 16px;
   font-size:11px;text-transform:uppercase;letter-spacing:.4px;
   color:#fff;font-weight:700;
   border-bottom:1px solid var(--brand-darker);
@@ -244,15 +263,15 @@ table.data-table th.sortable::after{content:'⇅';margin-left:6px;opacity:.6;fon
 table.data-table th.sort-asc::after{content:'▲';opacity:1;color:var(--accent)}
 table.data-table th.sort-desc::after{content:'▼';opacity:1;color:var(--accent)}
 table.data-table td{
-  padding:10px 14px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);
-  vertical-align:top;white-space:nowrap;
+  padding:10px 16px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);
+  vertical-align:top;white-space:nowrap;text-align:center;
 }
 table.data-table th{border-right:1px solid rgba(255,255,255,.25)}
 table.data-table th:last-child,table.data-table td:last-child{border-right:none}
 table.data-table tbody tr:nth-child(even) td{background:var(--surface-alt)}
 table.data-table tr:hover td{background:var(--accent-soft)}
 table.data-table tr.expanded td{background:var(--accent-soft)}
-table.data-table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.data-table .num{text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
 table.data-table .ctr{text-align:center}
 .row-toggle{
   background:none;border:none;cursor:pointer;color:var(--brand);
@@ -274,6 +293,7 @@ table.data-table .ctr{text-align:center}
 .prod-yes{background:var(--accent);color:var(--brand-darker)}
 .prod-no{background:#eef1f4;color:var(--text-soft)}
 .opp-badge{background:var(--brand);color:#fff}
+.opp-pill-wrap{display:grid;grid-template-columns:repeat(2,auto);gap:4px;justify-content:start}
 .opp-badge.zero{background:#eef1f4;color:var(--text-soft)}
 
 .detail-row{background:var(--surface-alt) !important}
@@ -434,6 +454,7 @@ table.data-table .ctr{text-align:center}
 
   <!-- ===================== UPLOAD SECTION ===================== -->
   <section id="uploadSection">
+   <div class="upload-wrap">
     <div class="upload-intro">
       <h2>Bangun Customer Relationship Dashboard</h2>
       <p>Upload sumber data di bawah. <code>LW321 (Pinjaman)</code> wajib diupload — semua data lain akan di-<em>lookup</em> ke CIF pada LW321 untuk membentuk satu tampilan nasabah terintegrasi (lending, funding, dan transaksi merchant). File lain sifatnya opsional; makin banyak yang diupload, makin lengkap wallet share dan rekomendasi cross-selling yang dihasilkan.</p>
@@ -454,6 +475,7 @@ table.data-table .ctr{text-align:center}
       <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
       <p style="margin-top:10px;font-size:12px;color:var(--text-muted)" id="progressDetail">Mempersiapkan...</p>
     </div>
+   </div>
   </section>
 
   <!-- ===================== DASHBOARD ===================== -->
@@ -1177,14 +1199,17 @@ function productPills(c){
   return defs.map(([code,label,on]) => `<span class="badge-pill ${on?'prod-yes':'prod-no'}" title="${label}">${code}</span>`).join(' ');
 }
 
-/* Renders one small icon badge per detected opportunity type, each with a tooltip
-   explaining what it means — replaces a bare count so the meaning is self-evident. */
+/* Renders one small badge per detected opportunity type, each with a tooltip
+   explaining what it means — replaces a bare count so the meaning is self-evident.
+   Wrapped in a fixed 2-column grid so a customer with many opportunities never
+   forces the column (and the whole table) to widen — it just grows downward. */
 function oppPills(c){
   if(!c.opportunities.length) return '<span style="color:var(--text-soft)">–</span>';
-  return c.opportunities.map(k => {
+  const badges = c.opportunities.map(k => {
     const def = OPP_DEFS[k];
-    return `<span class="badge-pill opp-badge" title="${escapeHtml(def.label)} — ${escapeHtml(def.sub)}" style="margin-right:3px">${def.tag}</span>`;
+    return `<span class="badge-pill opp-badge" title="${escapeHtml(def.label)} — ${escapeHtml(def.sub)}">${def.tag}</span>`;
   }).join('');
+  return `<div class="opp-pill-wrap">${badges}</div>`;
 }
 
 function renderCustTable(){
@@ -1261,8 +1286,6 @@ function renderCustomerDetail(c){
   const oppHtml = c.opportunities.length ? c.opportunities.map(k => `<div class="rec-note"><strong>${OPP_DEFS[k].label}:</strong> ${OPP_DEFS[k].rec}</div>`).join('') 
     : '<div class="rec-note">Tidak ada peluang cross-sell yang terdeteksi otomatis untuk nasabah ini pada periode data saat ini.</div>';
 
-  const covPct = c.fundingCoverage != null ? Math.min(150, c.fundingCoverage*100) : 0;
-
   return `
     <div class="detail-content">
       <div class="customer-hero" style="margin-bottom:14px">
@@ -1285,11 +1308,6 @@ function renderCustomerDetail(c){
             <span class="pill ${c.qris.length?'on':''}">QRIS ${c.qris.length}</span>
           </div>
         </div>
-      </div>
-
-      <div class="detail-section-title" style="background:transparent;color:var(--text-muted);padding:0;font-weight:600">Funding Coverage — Balance Giro + Tabungan + Deposito ÷ Baki Debet</div>
-      <div class="wallet-bar-wrap">
-        <div class="wallet-bar-track"><div class="wallet-bar-fill" style="width:${covPct}%"></div></div>
       </div>
 
       <div class="detail-section-title">Business Opportunity — Rekomendasi</div>

@@ -1783,7 +1783,13 @@ function renderPriorityTab(){
   renderPriorityDist();
   renderPriorityBasisCard();
   renderPriorityQuadGrid();
-  renderPriorityChart();
+  // Only create/redraw the Chart.js canvas if its tab is actually visible right
+  // now — building a chart while its container is display:none gives Chart.js
+  // a zero-width canvas to measure, and it can end up permanently blank even
+  // after a later resize(). If the tab isn't open yet, the tab-click handler
+  // (elsewhere in this script) creates it fresh the moment it becomes visible.
+  const panelEl = document.getElementById('panel-priority');
+  if(panelEl && panelEl.classList.contains('active')) renderPriorityChart();
   State.activePriorityQuad = null;
   renderPriorityTable();
   const priorityVisitCount = State.priority.list.filter(r => r.status === 'Priority Visit').length;
@@ -1791,8 +1797,8 @@ function renderPriorityTab(){
 
   const p = State.priority;
   $('priorityTableHint').textContent =
-    `Sebaran kuadran: Priority 1 = ${p.quadCounts.p1}, Maintain = ${p.quadCounts.maintain}, Monitor = ${p.quadCounts.monitor}, Stable = ${p.quadCounts.stable} nasabah. ` +
-    `Kalau salah satu kuadran mendominasi (misalnya hampir semua "Stable"), itu tandanya distribusi OS/Coverage di scope ini skewed — coba isi threshold manual di atas dengan angka yang lebih masuk akal untuk data kamu.`;
+    `Sebaran kuadran: ${QUAD_DEFS.p1.label} = ${p.quadCounts.p1}, ${QUAD_DEFS.maintain.label} = ${p.quadCounts.maintain}, ${QUAD_DEFS.monitor.label} = ${p.quadCounts.monitor}, ${QUAD_DEFS.stable.label} = ${p.quadCounts.stable} nasabah. ` +
+    `Kalau salah satu kuadran mendominasi (misalnya hampir semua "${QUAD_DEFS.stable.label}"), itu tandanya distribusi OS/Coverage di scope ini skewed — coba isi threshold manual di atas dengan angka yang lebih masuk akal untuk data kamu.`;
 }
 
 /* Makes it explicit whether the matrix is currently running on the automatic
@@ -2142,11 +2148,12 @@ document.querySelectorAll('.tab').forEach(t => {
     document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
     t.classList.add('active');
     $('panel-'+t.dataset.panel).classList.add('active');
-    // Charts created while their tab was hidden can end up with a wrong/zero
-    // size (Chart.js can't measure a display:none canvas) — force a resize
-    // once the panel becomes visible so they render correctly.
-    if(t.dataset.panel === 'priority' && State.charts.priority){
-      setTimeout(() => State.charts.priority.resize(), 0);
+    // The Priority Matrix chart is only ever created here, lazily, the moment
+    // its tab is actually visible (never eagerly while hidden) — Chart.js
+    // measures a display:none canvas as zero-width and can end up permanently
+    // blank even after a later resize(), so we always build it fresh instead.
+    if(t.dataset.panel === 'priority' && State.priority){
+      setTimeout(() => renderPriorityChart(), 0);
     }
     if(t.dataset.panel === 'overview'){
       setTimeout(() => Object.values(State.charts).forEach(c => { try{ c.resize(); }catch(e){} }), 0);

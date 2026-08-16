@@ -79,7 +79,7 @@ body{
 /* ===================== UPLOAD ===================== */
 /* Centers the entire upload flow (intro + slots + action) as one tidy column
    instead of stretching edge-to-edge on wide screens. */
-.upload-wrap{max-width:920px;margin:0 auto}
+.upload-wrap{width:100%}
 
 .upload-intro{
   background:var(--surface);border-radius:var(--radius-lg);padding:22px 26px;
@@ -539,6 +539,16 @@ table.data-table td.empty{text-align:center}
           <h3>Distribusi Segmen Pinjaman</h3>
           <div class="chart-canvas-wrap"><canvas id="chartSegmen"></canvas></div>
         </div>
+        <div class="chart-card">
+          <h3>Distribusi Funding Coverage Nasabah</h3>
+          <div class="chart-canvas-wrap"><canvas id="chartCoverageDist"></canvas></div>
+          <div class="table-wrap" style="margin-top:12px">
+            <table class="data-table">
+              <thead><tr><th>Funding Coverage</th><th class="num">Nasabah</th></tr></thead>
+              <tbody id="coverageDistBody"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -592,7 +602,7 @@ table.data-table td.empty{text-align:center}
     <div class="tab-panel" id="panel-opportunity">
       <div class="panel">
         <div class="panel-header">
-          <div class="panel-title">Business Opportunity — Recommendation Engine</div>
+          <div class="panel-title">Peluang Bisnis</div>
           <div class="panel-actions"><span style="font-size:11.5px;color:var(--text-muted)">Klik kategori untuk melihat daftar nasabah</span></div>
         </div>
         <div class="panel-body">
@@ -633,14 +643,15 @@ table.data-table td.empty{text-align:center}
             <div class="detail-field"><span class="lbl">Review</span><span class="val">Nasabah Priority 1 TAPI tidak ada trigger terdeteksi — OS besar & coverage kecil, namun belum tentu ada peluang nyata; perlu dicek manual dulu.</span></div>
           </div>
 
-          <div class="detail-section-title">Distribusi Baki Debet (OS) &amp; Funding Coverage — scope saat ini</div>
+          <div class="detail-section-title">DASAR PENENTUAN THRESHOLD PRIORITAS</div>
+          <p style="font-size:12px;color:var(--text-muted);margin:-4px 0 10px;line-height:1.6">Threshold otomatis ditentukan berdasarkan distribusi portfolio nasabah yang dipilih.</p>
           <div class="table-wrap" style="margin-bottom:10px">
             <table class="data-table" style="max-width:560px">
-              <thead><tr><th>Percentile</th><th class="num">Baki Debet (OS)</th><th class="num">Funding Coverage</th></tr></thead>
+              <thead><tr><th>Statistik Portfolio</th><th class="num">Baki Debet (OS)</th><th class="num">Funding Coverage</th></tr></thead>
               <tbody id="priorityDistBody"></tbody>
             </table>
           </div>
-          <div class="upload-hint" style="margin-bottom:18px">Kalau angka Min–Max di atas jauh berjarak (contoh: Median jauh dari P75), distribusinya skewed — artinya proporsi kuadran di bawah bisa kurang representatif.</div>
+          <div class="upload-hint" style="margin-bottom:18px">⚠️ Catatan: Kalau angka Min–Max di atas jauh berjarak (contoh: Median jauh dari P75), distribusinya dapat menjadi skewed, sehingga proporsi kuadran yang terbentuk dapat kurang representatif. Dalam kondisi tersebut, threshold manual dapat digunakan untuk menyesuaikan cut-off prioritas.</div>
 
           <div class="panel" style="margin-bottom:18px;border-color:var(--brand-mid)">
             <div class="panel-header"><div class="panel-title">Atur Threshold Prioritas</div></div>
@@ -1348,7 +1359,7 @@ function oppPills(c){
   const kol = c.worstKol;
   const badges = [];
   if(kol >= 3){
-    badges.push({tag:'MONITORING/EKSEKUSI', title:`Kol ${kol} - ${KOL_LABEL[kol]||''}: kolektibilitas bermasalah — fokus penanganan kredit, bukan cross-sell.`});
+    badges.push({tag:'RECOVERY', title:`Kol ${kol} - ${KOL_LABEL[kol]||''}: kolektibilitas bermasalah — fokus penanganan kredit (monitoring/negosiasi/eksekusi), bukan cross-sell.`});
   } else {
     if(kol === 2) badges.push({tag:'MONITORING', title:'Kol 2 - Dalam Perhatian Khusus: perlu dipantau komitmen pembayarannya.'});
     if(kol === 1 && c.priorityQuad === 'p1') badges.push({tag:'JOINT OTS', title:'Lancar namun Priority 1 di Matrix Prioritas Kunjungan — peluang kunjungan bersama RM SME & RM FT.'});
@@ -1420,7 +1431,7 @@ function renderOpportunityRecommendations(c){
 
   if(kol >= 3){
     const kolLabel = KOL_LABEL[kol] || 'bermasalah';
-    notes.push(`<div class="rec-note" style="border-left-color:var(--danger);background:#fdeceb;color:#8a2f2f"><strong>Monitoring / Eksekusi (Kol ${kol} - ${escapeHtml(kolLabel)}):</strong> Kolektibilitas sudah bermasalah — fokus utamanya penanganan kredit bermasalah (monitoring intensif, negosiasi restrukturisasi, atau proses eksekusi jaminan), bukan cross-sell produk baru.</div>`);
+    notes.push(`<div class="rec-note" style="border-left-color:var(--danger);background:#fdeceb;color:#8a2f2f"><strong>Recovery (Kol ${kol} - ${escapeHtml(kolLabel)}):</strong> Kolektibilitas sudah bermasalah — fokus utamanya penanganan kredit bermasalah (monitoring intensif, negosiasi restrukturisasi, atau proses eksekusi jaminan), bukan cross-sell produk baru.</div>`);
   } else if(kol === 2){
     notes.push(`<div class="rec-note" style="border-left-color:var(--warning);background:#fdf3dd;color:#7a5a06"><strong>Monitoring (Kol 2 - Dalam Perhatian Khusus):</strong> Perlu monitoring komitmen pembayaran dan penelusuran penyebab tunggakan sebelum kualitas memburuk lebih lanjut.</div>`);
   } else if(kol === 1 && c.priorityQuad === 'p1'){
@@ -1593,11 +1604,12 @@ $('oppSearch').addEventListener('input', () => { if(State.activeOpp) selectOpp(S
        matrix alone never plays final judge.
    ================================================================= */
 const QUAD_DEFS = {
-  p1:       {label:'Priority 1',  sub:'OS tinggi (top 25%) + Funding Coverage rendah (bottom 25%) — kandidat utama untuk dicek lebih lanjut.', badgeCls:'k-5'},
-  maintain: {label:'Maintain',    sub:'OS tinggi dan Funding Coverage juga tinggi — relationship sudah kuat, jaga & pantau.', badgeCls:'k-1'},
-  monitor:  {label:'Monitor',     sub:'OS rendah dan Funding Coverage rendah — prioritas kunjungan rendah untuk saat ini.', badgeCls:'k-3'},
-  stable:   {label:'Stable',      sub:'OS rendah namun Funding Coverage tinggi — nasabah kecil tapi sudah well-covered.', badgeCls:'k-2'},
+  p1:       {label:'P1 — Visit', emoji:'🔴', sub:'OS tinggi + Coverage rendah. Nasabah punya exposure besar, tetapi funding relationship relatif rendah. Fokus utama kunjungan.', badgeCls:'k-5'},
+  maintain: {label:'P2 — Maintain & Deepen', emoji:'🟠', sub:'OS tinggi + Coverage tinggi. Nasabah bernilai tinggi dan relationship sudah kuat. Bukan berarti tidak perlu dikunjungi, tapi fokusnya menjaga relationship dan mencari deepening opportunity.', badgeCls:'k-3'},
+  monitor:  {label:'P3 — Develop', emoji:'🟡', sub:'OS rendah + Coverage rendah. Relationship masih rendah, tetapi exposure relatif kecil. Dikembangkan berdasarkan opportunity yang ditemukan, bukan prioritas utama kunjungan.', badgeCls:'k-2'},
+  stable:   {label:'P4 — Monitor', emoji:'🟢', sub:'OS rendah + Coverage tinggi. Exposure relatif kecil dan relationship sudah cukup baik. Monitoring/maintain, bukan target utama kunjungan.', badgeCls:'k-1'},
 };
+const QUAD_COLOR = {p1:'#d64545', maintain:'#e07b1f', monitor:'#d69a12', stable:'#0a9d6e'};
 
 function percentile(sortedArr, p){
   if(!sortedArr.length) return 0;
@@ -1655,11 +1667,11 @@ function computePriorityData(){
 function renderPriorityDist(){
   const {distOS, distCov} = State.priority;
   const rows = [
-    ['Min', distOS.min, distCov.min],
-    ['P25', distOS.p25, distCov.p25],
+    ['Minimum', distOS.min, distCov.min],
+    ['P25 — Lower 25%', distOS.p25, distCov.p25],
     ['Median', distOS.median, distCov.median],
-    ['P75 (cut-off OS)', distOS.p75, distCov.p75],
-    ['Max', distOS.max, distCov.max],
+    ['P75 — Upper 25% Cut-off', distOS.p75, distCov.p75],
+    ['Maximum', distOS.max, distCov.max],
   ];
   $('priorityDistBody').innerHTML = rows.map(([lbl, os, cov]) => `
     <tr><td>${lbl}</td><td class="num">${fmtRupiah(os)}</td><td class="num">${(cov*100).toFixed(1)}%</td></tr>
@@ -1673,10 +1685,9 @@ function renderPriorityQuadGrid(){
     const count = quadCounts[q] || 0;
     const isEmpty = count === 0;
     return `
-      <div class="opp-card ${isEmpty?'disabled':''}" data-quad="${q}" onclick="${isEmpty?'':`selectPriorityQuad('${q}')`}">
-        <div class="opp-icon">${escapeHtml(def.label.toUpperCase())}</div>
+      <div class="opp-card ${isEmpty?'disabled':''}" data-quad="${q}" onclick="${isEmpty?'':`selectPriorityQuad('${q}')`}" style="border-left:4px solid ${QUAD_COLOR[q]}">
+        <div class="opp-icon" style="background:${QUAD_COLOR[q]};color:#fff">${def.emoji} ${escapeHtml(def.label)}</div>
         <div class="opp-count">${count}</div>
-        <div class="opp-label">${def.label}</div>
         <div class="opp-sub">${def.sub}</div>
       </div>
     `;
@@ -1690,12 +1701,10 @@ function selectPriorityQuad(q){
 }
 window.selectPriorityQuad = selectPriorityQuad;
 
-function statusBadgeCls(status){
-  if(status === 'Priority Visit') return 'k-5';
-  if(status === 'Review') return 'k-2';
-  if(status === 'Maintain') return 'k-1';
-  if(status === 'Monitor') return 'k-3';
-  return 'k-2'; // Stable
+function statusBadgeCls(r){
+  if(r.status === 'Priority Visit') return 'k-5';
+  if(r.status === 'Review') return 'k-2';
+  return QUAD_DEFS[r.quad].badgeCls;
 }
 
 function renderPriorityTable(){
@@ -1717,17 +1726,16 @@ function renderPriorityTable(){
       <td><span class="badge-pill ${QUAD_DEFS[r.quad].badgeCls}">${QUAD_DEFS[r.quad].label}</span></td>
       <td>${r.fundingGap ? '✓' : '–'}</td>
       <td>${r.merchantGap ? '✓' : '–'}</td>
-      <td><span class="badge-pill ${statusBadgeCls(r.status)}">${escapeHtml(r.status)}</span></td>
+      <td><span class="badge-pill ${statusBadgeCls(r)}">${escapeHtml(r.status)}</span></td>
       <td>${escapeHtml(cleanPn(r.c.loans[0]?.pnPengelola))}</td>
     </tr>
   `).join('') || '<tr><td colspan="8" class="empty">Tidak ada nasabah yang cocok.</td></tr>';
 }
 
-const QUAD_COLOR = {p1:'#d64545', maintain:'#0a9d6e', monitor:'#e07b1f', stable:'#d69a12'};
 
 function renderPriorityLegend(){
   $('priorityChartLegend').innerHTML = Object.keys(QUAD_DEFS).map(q => `
-    <span class="pill" style="background:${QUAD_COLOR[q]};color:#fff" title="${escapeHtml(QUAD_DEFS[q].sub)}">● ${escapeHtml(QUAD_DEFS[q].label)}</span>
+    <span class="pill" style="background:${QUAD_COLOR[q]};color:#fff" title="${escapeHtml(QUAD_DEFS[q].sub)}">${QUAD_DEFS[q].emoji} ${escapeHtml(QUAD_DEFS[q].label)}</span>
   `).join('');
 }
 
@@ -1876,6 +1884,26 @@ function renderCharts(){
     data:{labels:Object.keys(segMap), datasets:[{data:Object.values(segMap), backgroundColor:CBLUE.concat(['#063f8f','#7fb8e6']), borderWidth:2, borderColor:'#fff'}]},
     options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{font:{size:11}}}}}
   });
+
+  // Funding Coverage bucketed by range, so it's obvious at a glance how many
+  // customers have little-to-no funding relationship vs. a well-covered one.
+  const covBuckets = {'0%':0, '>0–10%':0, '>10–25%':0, '>25–50%':0, '>50%':0};
+  custs.forEach(c => {
+    const cov = (c.fundingCoverage ?? 0) * 100;
+    if(cov <= 0) covBuckets['0%']++;
+    else if(cov <= 10) covBuckets['>0–10%']++;
+    else if(cov <= 25) covBuckets['>10–25%']++;
+    else if(cov <= 50) covBuckets['>25–50%']++;
+    else covBuckets['>50%']++;
+  });
+  State.charts.coverageDist = new Chart($('chartCoverageDist'), {
+    type:'bar',
+    data:{labels:Object.keys(covBuckets), datasets:[{label:'Jumlah Nasabah', data:Object.values(covBuckets), backgroundColor:['#d64545','#e07b1f','#d69a12','#2e78d6','#0a9d6e'], borderRadius:4}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, ticks:{stepSize:1}}}}
+  });
+  $('coverageDistBody').innerHTML = Object.keys(covBuckets).map(k =>
+    `<tr><td>${k}</td><td class="num">${covBuckets[k]}</td></tr>`
+  ).join('');
 }
 
 /* ===================================================================

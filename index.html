@@ -625,25 +625,24 @@ table.data-table td.empty{text-align:center}
           <div class="panel-title">🎯 Matrix Prioritas Kunjungan — OS × Funding Coverage</div>
         </div>
         <div class="panel-body">
-          <div class="info-banner">
-            <strong>Matrix</strong> menjawab <strong>WHO</strong>: nasabah mana yang relatif perlu diperhatikan berdasarkan OS dan Funding Coverage.<br>
-            <strong>Opportunity Trigger</strong> menjawab <strong>WHY</strong>: apakah terdapat alasan bisnis untuk ditindaklanjuti.
-          </div>
-
-          <div class="detail-section-title">Matrix 2×2 — OS × Funding Coverage</div>
-          <div class="table-wrap" style="max-width:640px;margin-bottom:18px">
+          <div class="detail-section-title">Matrix OS × Funding Coverage</div>
+          <div class="table-wrap" style="max-width:720px;margin-bottom:18px">
             <table class="data-table">
-              <thead><tr><th></th><th class="ctr">OS Tinggi</th><th class="ctr">OS Rendah</th></tr></thead>
+              <thead><tr>
+                <th>Funding Coverage ↓ / OS →</th>
+                <th class="ctr">OS Tinggi<br><span style="font-weight:400;text-transform:none;font-size:10.5px">≥ P75 OS</span></th>
+                <th class="ctr">OS Rendah<br><span style="font-weight:400;text-transform:none;font-size:10.5px">&lt; P75 OS</span></th>
+              </tr></thead>
               <tbody>
                 <tr>
-                  <td><strong>Coverage Rendah</strong></td>
-                  <td class="ctr" style="background:#d64545;color:#fff;font-weight:700">🔴 Priority 1 — Visit</td>
-                  <td class="ctr" style="background:#d69a12;color:#fff;font-weight:700">🟡 Priority 3 — Develop</td>
+                  <td><strong>Coverage Rendah</strong><br><span style="font-weight:400;font-size:11px;color:var(--text-soft)">≤ P25 Coverage</span></td>
+                  <td class="ctr" style="background:#d64545;color:#fff;font-weight:700">🔴 Prioritas 1 — VISIT</td>
+                  <td class="ctr" style="background:#d69a12;color:#fff;font-weight:700">🟡 P3 — DEVELOP</td>
                 </tr>
                 <tr>
-                  <td><strong>Coverage Tinggi</strong></td>
-                  <td class="ctr" style="background:#e07b1f;color:#fff;font-weight:700">🟠 Priority 2 — Maintain</td>
-                  <td class="ctr" style="background:#0a9d6e;color:#fff;font-weight:700">🟢 Priority 4 — Monitor</td>
+                  <td><strong>Coverage Tinggi</strong><br><span style="font-weight:400;font-size:11px;color:var(--text-soft)">&gt; P25 Coverage</span></td>
+                  <td class="ctr" style="background:#e07b1f;color:#fff;font-weight:700">🟠 P2 — MAINTAIN</td>
+                  <td class="ctr" style="background:#0a9d6e;color:#fff;font-weight:700">🟢 P4 — MONITOR</td>
                 </tr>
               </tbody>
             </table>
@@ -687,7 +686,7 @@ table.data-table td.empty{text-align:center}
             <div class="customer-hero-inner" id="priorityBasisContent"></div>
           </div>
 
-          <div class="detail-section-title">Step 1 — Matrix (WHO): Kuadran OS × Coverage</div>
+          <div class="detail-section-title">Step 1 — Matrix Kuadran OS × Coverage</div>
           <div class="opp-grid" id="priorityQuadGrid"></div>
 
           <div class="chart-card" style="margin-bottom:18px">
@@ -704,7 +703,7 @@ table.data-table td.empty{text-align:center}
           <div class="table-wrap">
             <table class="data-table" id="priorityTable">
               <thead><tr>
-                <th>Nama Nasabah</th><th class="num">Baki Debet (OS)</th><th class="num">Funding Coverage</th><th>Kuadran</th><th>RM Pengelola Kredit</th>
+                <th>Nama Nasabah</th><th class="num">Baki Debet (OS)</th><th class="num">Funding Coverage</th><th>Kuadran</th><th>RM Pengelola Kredit</th><th>RM Pengelola FT</th>
               </tr></thead>
               <tbody id="priorityBody"></tbody>
             </table>
@@ -1717,8 +1716,9 @@ function renderPriorityTable(){
       <td class="num">${(r.cov*100).toFixed(1)}%</td>
       <td><span class="badge-pill ${QUAD_DEFS[r.quad].badgeCls}">${QUAD_DEFS[r.quad].label}</span></td>
       <td>${escapeHtml(cleanPn(r.c.loans[0]?.pnPengelola))}</td>
+      <td>${escapeHtml(r.c.rmFundingList && r.c.rmFundingList.length ? r.c.rmFundingList.join(', ') : '-')}</td>
     </tr>
-  `).join('') || '<tr><td colspan="5" class="empty">Tidak ada nasabah yang cocok.</td></tr>';
+  `).join('') || '<tr><td colspan="6" class="empty">Tidak ada nasabah yang cocok.</td></tr>';
 }
 
 
@@ -1758,6 +1758,8 @@ function renderPriorityChart(){
 
   const cutoffX = `<line x1="${xPix(p.p75OS)}" y1="${padT}" x2="${xPix(p.p75OS)}" y2="${padT+plotH}" stroke="#8ba6bd" stroke-width="1.5" stroke-dasharray="6,4"/>`;
   const cutoffY = `<line x1="${padL}" y1="${yPix(p.p25Cov*100)}" x2="${padL+plotW}" y2="${yPix(p.p25Cov*100)}" stroke="#8ba6bd" stroke-width="1.5" stroke-dasharray="6,4"/>`;
+  const cutoffXLabel = `<text x="${Math.min(xPix(p.p75OS)+6, padL+plotW-4)}" y="${padT+12}" font-size="10.5" fill="#5a7691" font-weight="700">P75 OS: ${fmtRupiah(p.p75OS)}</text>`;
+  const cutoffYLabel = `<text x="${padL+plotW-4}" y="${yPix(p.p25Cov*100)-6}" font-size="10.5" fill="#5a7691" font-weight="700" text-anchor="end">P25 Coverage: ${(p.p25Cov*100).toFixed(1)}%</text>`;
 
   const points = p.list.map(r => {
     const cx = xPix(r.c.totalBakiDebet), cy = yPix(r.cov*100);
@@ -1777,7 +1779,7 @@ function renderPriorityChart(){
   `;
 
   wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:560px;display:block" xmlns="http://www.w3.org/2000/svg">
-    ${gridLines}${axisLines}${cutoffX}${cutoffY}${points}${xLabels}${yLabels}${axisTitles}
+    ${gridLines}${axisLines}${cutoffX}${cutoffY}${points}${xLabels}${yLabels}${axisTitles}${cutoffXLabel}${cutoffYLabel}
   </svg>`;
 }
 

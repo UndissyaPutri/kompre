@@ -91,8 +91,8 @@ body{
 .upload-intro code{background:var(--accent-soft);padding:1px 6px;border-radius:4px;color:var(--brand-dark);font-weight:600}
 
 .slot-grid{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-  gap:14px;margin:0 auto 18px;max-width:1100px;
+  display:grid;grid-template-columns:repeat(3, minmax(240px, 300px));
+  gap:14px;margin:0 auto 18px;justify-content:center;
 }
 .slot-card{
   background:var(--surface);border:2px dashed var(--border);border-radius:var(--radius);
@@ -626,26 +626,25 @@ table.data-table td.empty{text-align:center}
         </div>
         <div class="panel-body">
           <div class="info-banner">
-            <strong>Cara baca:</strong> Matrix ini menjawab <strong>"siapa yang relatif perlu diperhatikan"</strong> (WHO) dengan membandingkan Baki Debet/OS terhadap Funding Coverage nasabah dalam scope yang sedang difilter. Ini bukan keputusan final — kuadran <strong>Priority 1</strong> masih dicek lagi lewat <strong>Opportunity Trigger</strong> (WHY: apakah ada Funding Gap atau Merchant Gap) sebelum ditetapkan sebagai <strong>Priority Visit</strong>. Cut-off P75/P25 di sini bersifat <em>relatif terhadap data yang sedang tampil</em>, bukan angka absolut — kalau distribusi OS/Coverage sangat skewed (lihat tabel distribusi di bawah), proporsi tiap kuadran bisa menyesatkan, jadi selalu cek angka distribusinya dulu sebelum mempercayai proporsi kuadran secara mentah.
+            <strong>Matrix</strong> menjawab <strong>WHO</strong>: nasabah mana yang relatif perlu diperhatikan berdasarkan OS dan Funding Coverage.<br>
+            <strong>Opportunity Trigger</strong> menjawab <strong>WHY</strong>: apakah terdapat alasan bisnis untuk ditindaklanjuti.
           </div>
 
-          <div class="detail-section-title">Definisi &amp; Istilah</div>
-          <div class="table-wrap" style="margin-bottom:18px">
+          <div class="detail-section-title">Matrix 2×2 — OS × Funding Coverage</div>
+          <div class="table-wrap" style="max-width:640px;margin-bottom:18px">
             <table class="data-table">
-              <thead><tr><th>Istilah</th><th>Definisi Singkat</th></tr></thead>
+              <thead><tr><th></th><th class="ctr">OS Tinggi</th><th class="ctr">OS Rendah</th></tr></thead>
               <tbody>
-                <tr><td>OS (Baki Debet)</td><td>Total outstanding pinjaman aktif nasabah.</td></tr>
-                <tr><td>Funding Coverage</td><td>(Tabungan + Giro + Deposito) ÷ OS — menunjukkan porsi funding BRI terhadap outstanding pinjaman.</td></tr>
-                <tr><td>Cut-off OS (P75)</td><td>Batas OS tinggi berdasarkan P75 portfolio yang ditampilkan.</td></tr>
-                <tr><td>Cut-off Coverage (P25)</td><td>Batas Coverage rendah berdasarkan P25 portfolio yang ditampilkan.</td></tr>
-                <tr><td>🔴 Priority 1 — Visit</td><td>OS tinggi + Coverage rendah → prioritas utama untuk didalami.</td></tr>
-                <tr><td>🟠 Priority 2 — Maintain</td><td>OS tinggi + Coverage tinggi → pertahankan dan kembangkan relationship.</td></tr>
-                <tr><td>🟡 Priority 3 — Develop</td><td>OS rendah + Coverage rendah → kembangkan berdasarkan opportunity.</td></tr>
-                <tr><td>🟢 Priority 4 — Monitor</td><td>OS rendah + Coverage tinggi → maintain dan monitor.</td></tr>
-                <tr><td>Funding Gap</td><td>Nasabah belum memiliki Tabungan, Giro, atau Deposito.</td></tr>
-                <tr><td>Merchant Gap</td><td>Nasabah belum memiliki EDC atau QRIS.</td></tr>
-                <tr><td>Priority Visit</td><td>Nasabah Priority 1 yang punya ≥1 trigger (Funding Gap dan/atau Merchant Gap) — ada alasan bisnis konkret untuk dikunjungi.</td></tr>
-                <tr><td>Review</td><td>Nasabah Priority 1 tapi tidak ada trigger terdeteksi — OS besar & coverage kecil, namun belum tentu ada peluang nyata; perlu dicek manual dulu.</td></tr>
+                <tr>
+                  <td><strong>Coverage Rendah</strong></td>
+                  <td class="ctr" style="background:#d64545;color:#fff;font-weight:700">🔴 Priority 1 — Visit</td>
+                  <td class="ctr" style="background:#d69a12;color:#fff;font-weight:700">🟡 Priority 3 — Develop</td>
+                </tr>
+                <tr>
+                  <td><strong>Coverage Tinggi</strong></td>
+                  <td class="ctr" style="background:#e07b1f;color:#fff;font-weight:700">🟠 Priority 2 — Maintain</td>
+                  <td class="ctr" style="background:#0a9d6e;color:#fff;font-weight:700">🟢 Priority 4 — Monitor</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -683,6 +682,7 @@ table.data-table td.empty{text-align:center}
             </div>
           </div>
 
+          <div class="detail-section-title">Priority Matrix</div>
           <div class="customer-hero" id="priorityBasisCard" style="padding:14px 20px;margin-bottom:18px">
             <div class="customer-hero-inner" id="priorityBasisContent"></div>
           </div>
@@ -690,13 +690,12 @@ table.data-table td.empty{text-align:center}
           <div class="detail-section-title">Step 1 — Matrix (WHO): Kuadran OS × Coverage</div>
           <div class="opp-grid" id="priorityQuadGrid"></div>
 
-          <div class="chart-card" style="margin-bottom:8px">
+          <div class="chart-card" style="margin-bottom:18px">
             <h3>Sebaran Nasabah — Baki Debet (OS) vs Funding Coverage</h3>
             <div class="chart-canvas-wrap" style="height:360px"><canvas id="chartPriorityMatrix"></canvas></div>
           </div>
-          <div class="product-pills" id="priorityChartLegend" style="margin-bottom:18px"></div>
 
-          <div class="detail-section-title">Step 2 — Opportunity Trigger (WHY) &amp; Rekomendasi (WHAT NEXT)</div>
+          <div class="detail-section-title">Step 2 — Opportunity</div>
           <div class="upload-hint" style="margin-bottom:8px" id="priorityTableHint"></div>
           <div class="search-wrap no-print" style="margin-bottom:12px;max-width:420px">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -705,12 +704,11 @@ table.data-table td.empty{text-align:center}
           <div class="table-wrap">
             <table class="data-table" id="priorityTable">
               <thead><tr>
-                <th>Nama Nasabah</th><th class="num">Baki Debet (OS)</th><th class="num">Funding Coverage</th><th>Kuadran</th><th>Funding Gap</th><th>Merchant Gap</th><th>Status</th><th>RM Pengelola Kredit</th>
+                <th>Nama Nasabah</th><th class="num">Baki Debet (OS)</th><th class="num">Funding Coverage</th><th>Kuadran</th><th>RM Pengelola Kredit</th>
               </tr></thead>
               <tbody id="priorityBody"></tbody>
             </table>
           </div>
-          <div class="upload-hint" style="margin-top:8px">Catatan: sinyal "Buyer/Supplier Opportunity" dan "Covenant Funding Gap" dari framework belum bisa dihitung karena datanya tidak tersedia di file yang diupload — trigger di atas hanya berdasarkan Funding Gap (belum punya Tabungan/Giro/Deposito) dan Merchant Gap (belum punya EDC/QRIS).</div>
         </div>
       </div>
     </div>
@@ -1652,17 +1650,10 @@ function computePriorityData(){
     const highOS = c.totalBakiDebet >= p75OS;
     const lowCov = cov <= p25Cov;
     const quad = highOS && lowCov ? 'p1' : highOS ? 'maintain' : lowCov ? 'monitor' : 'stable';
-    const fundingGap = c.opportunities.includes('noTabungan') || c.opportunities.includes('noGiro') || c.opportunities.includes('noDeposito');
-    const merchantGap = c.opportunities.includes('noMerchant');
-    const triggerCount = (fundingGap?1:0) + (merchantGap?1:0);
-    let status;
-    if(quad === 'p1') status = triggerCount >= 1 ? 'Priority Visit' : 'Review';
-    else status = QUAD_DEFS[quad].label;
     // Tag the customer object itself so the per-customer detail card (Customer
-    // 360) can reference its quadrant/status for the recommendation logic.
+    // 360) can reference its quadrant for the Joint OTS recommendation logic.
     c.priorityQuad = quad;
-    c.priorityStatus = status;
-    return {c, cov, quad, fundingGap, merchantGap, triggerCount, status};
+    return {c, cov, quad};
   });
 
   const quadCounts = {p1:0, maintain:0, monitor:0, stable:0};
@@ -1707,20 +1698,15 @@ function selectPriorityQuad(q){
 }
 window.selectPriorityQuad = selectPriorityQuad;
 
-function statusBadgeCls(r){
-  if(r.status === 'Priority Visit') return 'k-5';
-  if(r.status === 'Review') return 'k-2';
-  return QUAD_DEFS[r.quad].badgeCls;
-}
 
 function renderPriorityTable(){
   const q = ($('prioritySearch').value || '').toLowerCase().trim();
   let rows = State.priority.list;
   if(State.activePriorityQuad) rows = rows.filter(r => r.quad === State.activePriorityQuad);
   if(q) rows = rows.filter(r => `${r.c.nama} ${r.c.cif}`.toLowerCase().includes(q));
-  const order = {'Priority Visit':0, 'Review':1, 'Maintain':2, 'Stable':3, 'Monitor':4};
+  const quadOrder = {p1:0, maintain:1, monitor:2, stable:3};
   rows = rows.slice().sort((a,b) => {
-    const oa = order[a.status] ?? 5, ob = order[b.status] ?? 5;
+    const oa = quadOrder[a.quad] ?? 4, ob = quadOrder[b.quad] ?? 4;
     if(oa !== ob) return oa - ob;
     return b.c.totalBakiDebet - a.c.totalBakiDebet;
   });
@@ -1730,20 +1716,11 @@ function renderPriorityTable(){
       <td class="num">${fmtRupiah(r.c.totalBakiDebet)}</td>
       <td class="num">${(r.cov*100).toFixed(1)}%</td>
       <td><span class="badge-pill ${QUAD_DEFS[r.quad].badgeCls}">${QUAD_DEFS[r.quad].label}</span></td>
-      <td>${r.fundingGap ? '✓' : '–'}</td>
-      <td>${r.merchantGap ? '✓' : '–'}</td>
-      <td><span class="badge-pill ${statusBadgeCls(r)}">${escapeHtml(r.status)}</span></td>
       <td>${escapeHtml(cleanPn(r.c.loans[0]?.pnPengelola))}</td>
     </tr>
-  `).join('') || '<tr><td colspan="8" class="empty">Tidak ada nasabah yang cocok.</td></tr>';
+  `).join('') || '<tr><td colspan="5" class="empty">Tidak ada nasabah yang cocok.</td></tr>';
 }
 
-
-function renderPriorityLegend(){
-  $('priorityChartLegend').innerHTML = Object.keys(QUAD_DEFS).map(q => `
-    <span class="pill" style="background:${QUAD_COLOR[q]};color:#fff" title="${escapeHtml(QUAD_DEFS[q].sub)}">${QUAD_DEFS[q].emoji} ${escapeHtml(QUAD_DEFS[q].label)}</span>
-  `).join('');
-}
 
 function renderPriorityChart(){
   if(State.charts.priority){ try{ State.charts.priority.destroy(); }catch(e){} }
@@ -1775,7 +1752,6 @@ function renderPriorityChart(){
       }
     }
   });
-  renderPriorityLegend();
 }
 
 function renderPriorityTab(){
@@ -1792,8 +1768,7 @@ function renderPriorityTab(){
   if(panelEl && panelEl.classList.contains('active')) renderPriorityChart();
   State.activePriorityQuad = null;
   renderPriorityTable();
-  const priorityVisitCount = State.priority.list.filter(r => r.status === 'Priority Visit').length;
-  $('badgePriority').textContent = priorityVisitCount;
+  $('badgePriority').textContent = State.priority.quadCounts.p1;
 
   const p = State.priority;
   $('priorityTableHint').textContent =

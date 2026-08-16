@@ -640,19 +640,33 @@ table.data-table td.empty{text-align:center}
               <tbody id="priorityDistBody"></tbody>
             </table>
           </div>
-          <div class="upload-hint" style="margin-bottom:18px">Kalau angka Min–Max di atas jauh berjarak (contoh: Median jauh dari P75), distribusinya skewed — artinya proporsi kuadran di bawah bisa kurang representatif. Kalau perlu, isi ambang batas manual di bawah ini untuk menggantikan cut-off P75/P25 otomatis.</div>
+          <div class="upload-hint" style="margin-bottom:18px">Kalau angka Min–Max di atas jauh berjarak (contoh: Median jauh dari P75), distribusinya skewed — artinya proporsi kuadran di bawah bisa kurang representatif.</div>
 
-          <div class="global-filter-bar no-print" style="margin-bottom:18px">
-            <div class="gf-pill">
-              <label>Ambang OS Manual (Rp, opsional)</label>
-              <input class="input" type="number" id="priorityOsOverride" placeholder="Kosongkan = pakai P75 otomatis">
+          <div class="panel" style="margin-bottom:18px;border-color:var(--brand-mid)">
+            <div class="panel-header"><div class="panel-title">Atur Threshold Prioritas</div></div>
+            <div class="panel-body">
+              <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:16px;line-height:1.6">Gunakan threshold manual apabila distribusi portfolio terlalu terkonsentrasi atau terdapat business focus tertentu.</p>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin-bottom:14px">
+                <div>
+                  <label style="font-size:12px;font-weight:700;color:var(--text);display:block;margin-bottom:4px">Ambang OS</label>
+                  <input class="input" type="number" id="priorityOsOverride" placeholder="Rp __________">
+                  <p style="font-size:11.5px;color:var(--text-soft);margin-top:5px;line-height:1.5">Nasabah ≥ nilai ini dikategorikan <strong>High Business Value</strong>.</p>
+                </div>
+                <div>
+                  <label style="font-size:12px;font-weight:700;color:var(--text);display:block;margin-bottom:4px">Ambang Funding Coverage</label>
+                  <input class="input" type="number" id="priorityCovOverride" placeholder="_____ %">
+                  <p style="font-size:11.5px;color:var(--text-soft);margin-top:5px;line-height:1.5">Nasabah ≤ nilai ini dikategorikan <strong>High Relationship Gap</strong>.</p>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px">
+                <button class="btn btn-primary btn-sm" id="btnApplyPriorityOverride">Terapkan</button>
+                <button class="btn btn-outline btn-sm" id="btnResetPriorityOverride">Reset ke Otomatis</button>
+              </div>
             </div>
-            <div class="gf-pill">
-              <label>Ambang Coverage Manual (%, opsional)</label>
-              <input class="input" type="number" id="priorityCovOverride" placeholder="Kosongkan = pakai P25 otomatis">
-            </div>
-            <button class="btn btn-outline btn-sm" id="btnApplyPriorityOverride">Terapkan</button>
-            <button class="btn btn-outline btn-sm" id="btnResetPriorityOverride">Reset ke Otomatis</button>
+          </div>
+
+          <div class="customer-hero" id="priorityBasisCard" style="padding:14px 20px;margin-bottom:18px">
+            <div class="customer-hero-inner" id="priorityBasisContent"></div>
           </div>
 
           <div class="detail-section-title">Step 1 — Matrix (WHO): Kuadran OS × Coverage</div>
@@ -1224,10 +1238,10 @@ function applyGlobalFilter(){
   const n = getScopedCustomers().length;
   $('gfHint').textContent = `Menampilkan ${n.toLocaleString('id-ID')} dari ${State.customers.size.toLocaleString('id-ID')} nasabah`;
   renderStats();
+  renderPriorityTab();
   applyCustFilters();
   renderOppGrid();
   renderCharts();
-  renderPriorityTab();
 }
 
 /* Pre-selects the filter to a specific branch on first load so the dashboard
@@ -1324,17 +1338,28 @@ function productPills(c){
    explaining what it means — replaces a bare count so the meaning is self-evident.
    Wrapped in a fixed 2-column grid so a customer with many opportunities never
    forces the column (and the whole table) to widen — it just grows downward.
-   Kolektibilitas watch is excluded here — it's a risk flag, not a product
-   opportunity, so it's kept out of this product-focused badge list (it still
-   shows up in the Peluang Bisnis tab and the per-customer recommendations). */
+   Tiered by Kolektibilitas, same logic as the detail card's recommendations:
+   problem loans (Kol 3-5) get a single Monitoring/Eksekusi badge instead of
+   product pitches; Kol 2 gets a Monitoring badge alongside cross-sell; Kol 1
+   customers who also land in the Priority 1 visit-matrix quadrant get a
+   Joint OTS badge. The generic risk flag ('kolWatch') itself is never shown
+   here — it's superseded by these more specific badges. */
 function oppPills(c){
-  const productOpps = c.opportunities.filter(k => k !== 'kolWatch');
-  if(!productOpps.length) return '<span style="color:var(--text-soft)">–</span>';
-  const badges = productOpps.map(k => {
-    const def = OPP_DEFS[k];
-    return `<span class="badge-pill opp-badge" title="${escapeHtml(def.label)} — ${escapeHtml(def.sub)}">${def.tag}</span>`;
-  }).join('');
-  return `<div class="opp-pill-wrap">${badges}</div>`;
+  const kol = c.worstKol;
+  const badges = [];
+  if(kol >= 3){
+    badges.push({tag:'MONITORING/EKSEKUSI', title:`Kol ${kol} - ${KOL_LABEL[kol]||''}: kolektibilitas bermasalah — fokus penanganan kredit, bukan cross-sell.`});
+  } else {
+    if(kol === 2) badges.push({tag:'MONITORING', title:'Kol 2 - Dalam Perhatian Khusus: perlu dipantau komitmen pembayarannya.'});
+    if(kol === 1 && c.priorityQuad === 'p1') badges.push({tag:'JOINT OTS', title:'Lancar namun Priority 1 di Matrix Prioritas Kunjungan — peluang kunjungan bersama RM SME & RM FT.'});
+    c.opportunities.filter(k => k !== 'kolWatch').forEach(k => {
+      const def = OPP_DEFS[k];
+      badges.push({tag:def.tag, title:`${def.label} — ${def.sub}`});
+    });
+  }
+  if(!badges.length) return '<span style="color:var(--text-soft)">–</span>';
+  const html = badges.map(b => `<span class="badge-pill opp-badge" title="${escapeHtml(b.title)}">${escapeHtml(b.tag)}</span>`).join('');
+  return `<div class="opp-pill-wrap">${html}</div>`;
 }
 
 function renderCustTable(){
@@ -1376,6 +1401,46 @@ window.toggleCustRow = function(cif){
 /* ===================================================================
    RENDER: CUSTOMER DETAIL (Single Customer View)
    ================================================================= */
+/* Recommendation logic tiered by Kolektibilitas, since a "normal" cross-sell
+   pitch (open a savings account, try QRIS, etc.) makes no sense for an
+   already-troubled loan — and a healthy, high-value/low-coverage customer
+   deserves a relationship-deepening action (Joint OTS) rather than a plain
+   product pitch:
+     Kol 1 (Lancar)                → normal cross-sell opportunities, PLUS a
+                                       Joint OTS note if the customer also
+                                       lands in the Priority 1 quadrant of the
+                                       visit matrix (big loan, low coverage).
+     Kol 2 (Dalam Perhatian Khusus)→ Monitoring note, cross-sell still shown.
+     Kol 3–5 (Kurang Lancar/       → Monitoring / Eksekusi note only — normal
+       Diragukan/Macet)              cross-sell is suppressed; pushing new
+                                       products on a problem loan isn't useful. */
+function renderOpportunityRecommendations(c){
+  const kol = c.worstKol;
+  const notes = [];
+
+  if(kol >= 3){
+    const kolLabel = KOL_LABEL[kol] || 'bermasalah';
+    notes.push(`<div class="rec-note" style="border-left-color:var(--danger);background:#fdeceb;color:#8a2f2f"><strong>Monitoring / Eksekusi (Kol ${kol} - ${escapeHtml(kolLabel)}):</strong> Kolektibilitas sudah bermasalah — fokus utamanya penanganan kredit bermasalah (monitoring intensif, negosiasi restrukturisasi, atau proses eksekusi jaminan), bukan cross-sell produk baru.</div>`);
+  } else if(kol === 2){
+    notes.push(`<div class="rec-note" style="border-left-color:var(--warning);background:#fdf3dd;color:#7a5a06"><strong>Monitoring (Kol 2 - Dalam Perhatian Khusus):</strong> Perlu monitoring komitmen pembayaran dan penelusuran penyebab tunggakan sebelum kualitas memburuk lebih lanjut.</div>`);
+  } else if(kol === 1 && c.priorityQuad === 'p1'){
+    notes.push(`<div class="rec-note"><strong>Joint OTS (Lancar + Priority 1):</strong> Kolektibilitas lancar, namun OS besar dengan Funding Coverage rendah (lihat tab Prioritas Kunjungan) — peluang kuat untuk kunjungan bersama RM SME &amp; RM FT guna memperdalam relationship funding.</div>`);
+  }
+
+  // Product cross-sell opportunities are only pushed for accounts that are
+  // still in reasonably good standing (Kol 1–2) — see note above.
+  if(kol < 3){
+    c.opportunities.filter(k => k !== 'kolWatch').forEach(k => {
+      notes.push(`<div class="rec-note"><strong>${OPP_DEFS[k].label}:</strong> ${OPP_DEFS[k].rec}</div>`);
+    });
+  }
+
+  if(!notes.length){
+    notes.push('<div class="rec-note">Tidak ada peluang atau tindakan khusus yang terdeteksi otomatis untuk nasabah ini pada periode data saat ini.</div>');
+  }
+  return notes.join('');
+}
+
 function renderCustomerDetail(c){
   const loansRows = c.loans.map(l => `
     <tr>
@@ -1408,8 +1473,7 @@ function renderCustomerDetail(c){
     ...c.qris.map(m => `<tr><td>QRIS</td><td>${escapeHtml(m.namaMerchant)}</td><td>-</td><td class="num ctr">${fmtNum(m._trx)}</td><td class="num">${fmtRupiah(m._volume)}</td><td class="ctr">${escapeHtml(combinePn(m.pn, m.pnNama))}</td></tr>`),
   ].join('') || '<tr><td colspan="6" class="empty">Belum ada merchant EDC/QRIS.</td></tr>';
 
-  const oppHtml = c.opportunities.length ? c.opportunities.map(k => `<div class="rec-note"><strong>${OPP_DEFS[k].label}:</strong> ${OPP_DEFS[k].rec}</div>`).join('') 
-    : '<div class="rec-note">Tidak ada peluang cross-sell yang terdeteksi otomatis untuk nasabah ini pada periode data saat ini.</div>';
+  const oppHtml = renderOpportunityRecommendations(c);
 
   return `
     <div class="detail-content">
@@ -1544,6 +1608,10 @@ function percentile(sortedArr, p){
 }
 
 function computePriorityData(){
+  // Clear any stale tags from a previous (differently-scoped) computation first,
+  // so a customer who falls out of scope doesn't keep an old quadrant label.
+  State.customers.forEach(c => { c.priorityQuad = null; c.priorityStatus = null; });
+
   const custs = getScopedCustomers().filter(c => c.totalBakiDebet > 0);
   const osArr = custs.map(c => c.totalBakiDebet).sort((a,b)=>a-b);
   const covArr = custs.map(c => c.fundingCoverage ?? 0).sort((a,b)=>a-b);
@@ -1571,6 +1639,10 @@ function computePriorityData(){
     let status;
     if(quad === 'p1') status = triggerCount >= 1 ? 'Priority Visit' : 'Review';
     else status = QUAD_DEFS[quad].label;
+    // Tag the customer object itself so the per-customer detail card (Customer
+    // 360) can reference its quadrant/status for the recommendation logic.
+    c.priorityQuad = quad;
+    c.priorityStatus = status;
     return {c, cov, quad, fundingGap, merchantGap, triggerCount, status};
   });
 
@@ -1694,6 +1766,7 @@ function renderPriorityChart(){
 function renderPriorityTab(){
   computePriorityData();
   renderPriorityDist();
+  renderPriorityBasisCard();
   renderPriorityQuadGrid();
   renderPriorityChart();
   State.activePriorityQuad = null;
@@ -1702,11 +1775,35 @@ function renderPriorityTab(){
   $('badgePriority').textContent = priorityVisitCount;
 
   const p = State.priority;
-  const overrideNote = p.usingOverride ? ' (memakai ambang manual yang kamu isi)' : ' (memakai P75/P25 otomatis dari data yang tampil)';
   $('priorityTableHint').textContent =
-    `Cut-off saat ini: OS ≥ ${fmtRupiah(p.p75OS)}, Coverage ≤ ${(p.p25Cov*100).toFixed(1)}%${overrideNote}. ` +
     `Sebaran kuadran: Priority 1 = ${p.quadCounts.p1}, Maintain = ${p.quadCounts.maintain}, Monitor = ${p.quadCounts.monitor}, Stable = ${p.quadCounts.stable} nasabah. ` +
-    `Kalau salah satu kuadran mendominasi (misalnya hampir semua "Stable"), itu tandanya distribusi OS/Coverage di scope ini skewed — coba isi ambang manual di atas dengan angka yang lebih masuk akal untuk data kamu.`;
+    `Kalau salah satu kuadran mendominasi (misalnya hampir semua "Stable"), itu tandanya distribusi OS/Coverage di scope ini skewed — coba isi threshold manual di atas dengan angka yang lebih masuk akal untuk data kamu.`;
+}
+
+/* Makes it explicit whether the matrix is currently running on the automatic
+   portfolio percentile (P75/P25) or on a manual threshold the person typed
+   in — so a different quadrant split never looks unexplained. */
+function renderPriorityBasisCard(){
+  const p = State.priority;
+  if(p.usingOverride){
+    $('priorityBasisContent').innerHTML = `
+      <span class="label-tag">Priority Matrix</span>
+      <div class="cname" style="font-size:16px">Basis: Manual Threshold</div>
+      <div class="customer-hero-grid" style="margin-top:10px">
+        <div><div class="f-label">Ambang OS</div><div class="f-value">OS ≥ ${fmtRupiah(p.p75OS)}</div></div>
+        <div><div class="f-label">Ambang Funding Coverage</div><div class="f-value">Coverage ≤ ${(p.p25Cov*100).toFixed(1)}%</div></div>
+      </div>
+    `;
+  } else {
+    $('priorityBasisContent').innerHTML = `
+      <span class="label-tag">Priority Matrix</span>
+      <div class="cname" style="font-size:16px">Basis: Portfolio Percentile</div>
+      <div class="customer-hero-grid" style="margin-top:10px">
+        <div><div class="f-label">P75 OS (otomatis)</div><div class="f-value">OS ≥ ${fmtRupiah(p.p75OS)}</div></div>
+        <div><div class="f-label">P25 Coverage (otomatis)</div><div class="f-value">Coverage ≤ ${(p.p25Cov*100).toFixed(1)}%</div></div>
+      </div>
+    `;
+  }
 }
 $('prioritySearch').addEventListener('input', renderPriorityTable);
 $('btnApplyPriorityOverride').addEventListener('click', () => {

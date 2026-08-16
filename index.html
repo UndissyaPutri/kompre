@@ -252,7 +252,7 @@ table.data-table{
 table.data-table th{
   position:sticky;top:0;z-index:5;
   background:var(--brand-dark);
-  text-align:center;padding:9px 16px;
+  text-align:left;padding:9px 14px;
   font-size:11px;text-transform:uppercase;letter-spacing:.4px;
   color:#fff;font-weight:700;
   border-bottom:1px solid var(--brand-darker);
@@ -263,15 +263,15 @@ table.data-table th.sortable::after{content:'⇅';margin-left:6px;opacity:.6;fon
 table.data-table th.sort-asc::after{content:'▲';opacity:1;color:var(--accent)}
 table.data-table th.sort-desc::after{content:'▼';opacity:1;color:var(--accent)}
 table.data-table td{
-  padding:10px 16px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);
-  vertical-align:top;white-space:nowrap;text-align:center;
+  padding:10px 14px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);
+  vertical-align:top;white-space:nowrap;text-align:left;
 }
 table.data-table th{border-right:1px solid rgba(255,255,255,.25)}
 table.data-table th:last-child,table.data-table td:last-child{border-right:none}
 table.data-table tbody tr:nth-child(even) td{background:var(--surface-alt)}
 table.data-table tr:hover td{background:var(--accent-soft)}
 table.data-table tr.expanded td{background:var(--accent-soft)}
-table.data-table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;padding-right:26px}
+table.data-table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;padding-right:18px}
 table.data-table .ctr{text-align:center}
 .row-toggle{
   background:none;border:none;cursor:pointer;color:var(--brand);
@@ -324,9 +324,9 @@ table.data-table .ctr{text-align:center}
   font-size:11px;letter-spacing:.6px;text-transform:uppercase;margin-bottom:8px;
 }
 .customer-hero .cname{font-size:21px;font-weight:700;letter-spacing:-.2px}
-.customer-hero-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px 20px;margin-top:14px}
-.customer-hero-grid .f-label{font-size:10.5px;opacity:.75;text-transform:uppercase;letter-spacing:.5px}
-.customer-hero-grid .f-value{font-size:13.5px;margin-top:2px;font-weight:600}
+.customer-hero-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px 20px;margin-top:14px;text-align:left}
+.customer-hero-grid .f-label{font-size:10.5px;opacity:.75;text-transform:uppercase;letter-spacing:.5px;text-align:left}
+.customer-hero-grid .f-value{font-size:13.5px;margin-top:2px;font-weight:600;text-align:left}
 
 .product-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
 .pill{padding:4px 11px;border-radius:14px;font-size:11px;font-weight:700;background:rgba(255,255,255,.16)}
@@ -353,7 +353,7 @@ table.data-table .ctr{text-align:center}
 .opp-detail-empty{padding:24px;text-align:center;color:var(--text-muted);font-style:italic}
 .rec-note{
   font-size:12px;color:var(--brand-dark);background:var(--accent-soft);border-left:3px solid var(--brand);
-  padding:10px 14px;border-radius:6px;margin-bottom:12px;line-height:1.6;
+  padding:10px 14px;border-radius:6px;margin-bottom:12px;line-height:1.6;text-align:left;
 }
 
 /* ===================== WALLET SHARE ===================== */
@@ -516,10 +516,6 @@ table.data-table .ctr{text-align:center}
         <div class="chart-card">
           <h3>Kepemilikan Produk Nasabah Existing</h3>
           <div class="chart-canvas-wrap"><canvas id="chartProduk"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <h3>Kepemilikan Produk Nasabah Existing (Baki Debet)</h3>
-          <div class="chart-canvas-wrap"><canvas id="chartProdukBaki"></canvas></div>
         </div>
         <div class="chart-card">
           <h3>Top 10 Nasabah — Baki Debet Pinjaman</h3>
@@ -1257,33 +1253,33 @@ window.toggleCustRow = function(cif){
 function renderCustomerDetail(c){
   const loansRows = c.loans.map(l => `
     <tr>
-      <td class="ctr">${escapeHtml(l.noRekening)}</td>
-      <td class="ctr">${escapeHtml(l.description||l.lnType)}</td>
-      <td class="ctr"><span class="badge-pill k-${l._kol}">${l._kol} - ${KOL_LABEL[l._kol]||''}</span></td>
+      <td>${escapeHtml(l.noRekening)}</td>
+      <td>${escapeHtml(l.description||l.lnType)}</td>
+      <td><span class="badge-pill k-${l._kol}">${l._kol} - ${KOL_LABEL[l._kol]||''}</span></td>
       <td class="num">${fmtRupiah(l._plafon)}</td>
       <td class="num">${fmtRupiah(l._baki)}</td>
       <td class="num">${fmtRupiah(l._tunggakan)}</td>
-      <td class="ctr">${escapeHtml(l.rate)}%</td>
-      <td class="ctr">${escapeHtml(l.tglJatuhTempo)}</td>
-      <td class="ctr">${escapeHtml(cleanPn(l.pnPengelola))}</td>
+      <td>${escapeHtml(l.rate)}%</td>
+      <td>${escapeHtml(l.tglJatuhTempo)}</td>
+      <td>${escapeHtml(cleanPn(l.pnPengelola))}</td>
     </tr>
   `).join('');
 
   const tabunganRows = c.tabungan.map(t => `
-    <tr><td class="ctr">${escapeHtml(t.accountNumber)}</td><td class="ctr">${escapeHtml(t.prodCode)}</td><td class="num">${fmtRupiah(t._balance)}</td><td class="ctr">${escapeHtml(t.openDt)}</td><td class="ctr">${escapeHtml(cleanPn(t.pnPengelola))}</td></tr>
+    <tr><td>${escapeHtml(t.accountNumber)}</td><td>${escapeHtml(t.prodCode)}</td><td class="num">${fmtRupiah(t._balance)}</td><td>${escapeHtml(t.openDt)}</td><td>${escapeHtml(cleanPn(t.pnPengelola))}</td></tr>
   `).join('') || '<tr><td colspan="5" class="empty">Belum ada rekening tabungan.</td></tr>';
 
   const giroRows = c.giro.map(t => `
-    <tr><td class="ctr">${escapeHtml(t.accountNumber)}</td><td class="ctr">${escapeHtml(t.productCode)}</td><td class="num">${fmtRupiah(t._balance)}</td><td class="ctr">${escapeHtml(t.openDate)}</td><td class="ctr">${escapeHtml(cleanPn(t.pnPengelola))}</td></tr>
+    <tr><td>${escapeHtml(t.accountNumber)}</td><td>${escapeHtml(t.productCode)}</td><td class="num">${fmtRupiah(t._balance)}</td><td>${escapeHtml(t.openDate)}</td><td>${escapeHtml(cleanPn(t.pnPengelola))}</td></tr>
   `).join('') || '<tr><td colspan="5" class="empty">Belum ada rekening giro.</td></tr>';
 
   const depositoRows = c.deposito.map(t => `
-    <tr><td class="ctr">${escapeHtml(t.acctno)}</td><td class="num">${fmtRupiah(t._principal)}</td><td class="ctr">${escapeHtml(t.intRate)}%</td><td class="ctr">${escapeHtml(t.matDt)}</td><td class="ctr">${escapeHtml(cleanPn(t.pnRmDana))}</td><td class="ctr">${t._matchType==='name-fuzzy' ? '<span class="badge-pill k-3">nama mirip - cek manual</span>' : '<span class="badge-pill prod-yes">nama sama</span>'}</td></tr>
+    <tr><td>${escapeHtml(t.acctno)}</td><td class="num">${fmtRupiah(t._principal)}</td><td>${escapeHtml(t.intRate)}%</td><td>${escapeHtml(t.matDt)}</td><td>${escapeHtml(cleanPn(t.pnRmDana))}</td><td>${t._matchType==='name-fuzzy' ? '<span class="badge-pill k-3">nama mirip - cek manual</span>' : '<span class="badge-pill prod-yes">nama sama</span>'}</td></tr>
   `).join('') || '<tr><td colspan="6" class="empty">Belum ada rekening deposito.</td></tr>';
 
   const merchantRows = [
-    ...c.edc.map(m => `<tr><td class="ctr">EDC</td><td class="ctr">${escapeHtml(m.namaMerchant)}</td><td class="ctr">${escapeHtml(m.mid)}</td><td class="num">${fmtNum(m._trx)}</td><td class="num">${fmtRupiah(m._volume)}</td><td class="ctr">${escapeHtml(combinePn(m.pnUser, m.namaUser))}</td></tr>`),
-    ...c.qris.map(m => `<tr><td class="ctr">QRIS</td><td class="ctr">${escapeHtml(m.namaMerchant)}</td><td class="ctr">-</td><td class="num">${fmtNum(m._trx)}</td><td class="num">${fmtRupiah(m._volume)}</td><td class="ctr">${escapeHtml(combinePn(m.pn, m.pnNama))}</td></tr>`),
+    ...c.edc.map(m => `<tr><td>EDC</td><td>${escapeHtml(m.namaMerchant)}</td><td>${escapeHtml(m.mid)}</td><td class="num">${fmtNum(m._trx)}</td><td class="num">${fmtRupiah(m._volume)}</td><td>${escapeHtml(combinePn(m.pnUser, m.namaUser))}</td></tr>`),
+    ...c.qris.map(m => `<tr><td>QRIS</td><td>${escapeHtml(m.namaMerchant)}</td><td>-</td><td class="num">${fmtNum(m._trx)}</td><td class="num">${fmtRupiah(m._volume)}</td><td>${escapeHtml(combinePn(m.pn, m.pnNama))}</td></tr>`),
   ].join('') || '<tr><td colspan="6" class="empty">Belum ada merchant EDC/QRIS.</td></tr>';
 
   const oppHtml = c.opportunities.length ? c.opportunities.map(k => `<div class="rec-note"><strong>${OPP_DEFS[k].label}:</strong> ${OPP_DEFS[k].rec}</div>`).join('') 
@@ -1317,19 +1313,19 @@ function renderCustomerDetail(c){
       ${oppHtml}
 
       <div class="detail-section-title">Fasilitas Kredit (${c.loans.length})</div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th class="ctr">No Rekening</th><th class="ctr">Jenis</th><th class="ctr">Kol</th><th class="num">Plafon</th><th class="num">Baki Debet</th><th class="num">Tunggakan</th><th class="ctr">Rate</th><th class="ctr">Jatuh Tempo</th><th class="ctr">RM Pengelola Kredit</th></tr></thead><tbody>${loansRows}</tbody></table></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>No Rekening</th><th>Jenis</th><th>Kol</th><th class="num">Plafon</th><th class="num">Baki Debet</th><th class="num">Tunggakan</th><th>Rate</th><th>Jatuh Tempo</th><th>RM Pengelola Kredit</th></tr></thead><tbody>${loansRows}</tbody></table></div>
 
       <div class="detail-section-title">Tabungan (${c.tabungan.length})</div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th class="ctr">No Rekening</th><th class="ctr">Produk</th><th class="num">Saldo</th><th class="ctr">Tgl Buka</th><th class="ctr">RM Pengelola FT</th></tr></thead><tbody>${tabunganRows}</tbody></table></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>No Rekening</th><th>Produk</th><th class="num">Saldo</th><th>Tgl Buka</th><th>RM Pengelola FT</th></tr></thead><tbody>${tabunganRows}</tbody></table></div>
 
       <div class="detail-section-title">Giro (${c.giro.length})</div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th class="ctr">No Rekening</th><th class="ctr">Produk</th><th class="num">Saldo</th><th class="ctr">Tgl Buka</th><th class="ctr">RM Pengelola FT</th></tr></thead><tbody>${giroRows}</tbody></table></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>No Rekening</th><th>Produk</th><th class="num">Saldo</th><th>Tgl Buka</th><th>RM Pengelola FT</th></tr></thead><tbody>${giroRows}</tbody></table></div>
 
       <div class="detail-section-title">Deposito (${c.deposito.length}) — dicocokkan berdasarkan nama (tanpa CIF)</div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th class="ctr">No Rekening</th><th class="num">Nominal</th><th class="ctr">Rate</th><th class="ctr">Jatuh Tempo</th><th class="ctr">RM Pengelola FT</th><th class="ctr">Kualitas Match</th></tr></thead><tbody>${depositoRows}</tbody></table></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>No Rekening</th><th class="num">Nominal</th><th>Rate</th><th>Jatuh Tempo</th><th>RM Pengelola FT</th><th>Kualitas Match</th></tr></thead><tbody>${depositoRows}</tbody></table></div>
 
       <div class="detail-section-title">Merchant EDC / QRIS (${c.edc.length + c.qris.length})</div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th class="ctr">Tipe</th><th class="ctr">Nama Merchant</th><th class="ctr">MID</th><th class="num">Transaksi</th><th class="num">Volume</th><th class="ctr">RM Pengelola FT</th></tr></thead><tbody>${merchantRows}</tbody></table></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Tipe</th><th>Nama Merchant</th><th>MID</th><th class="num">Transaksi</th><th class="num">Volume</th><th>RM Pengelola FT</th></tr></thead><tbody>${merchantRows}</tbody></table></div>
     </div>
   `;
 }
@@ -1417,24 +1413,6 @@ function renderCharts(){
     type:'doughnut',
     data:{labels:Object.keys(prodCount), datasets:[{data:Object.values(prodCount), backgroundColor:CBLUE, borderWidth:2, borderColor:'#fff'}]},
     options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{font:{size:11}}}}}
-  });
-
-  // Same product-ownership breakdown, but sized by baki debet (outstanding pinjaman)
-  // of the owning customers instead of headcount — shows which product-holding
-  // segment actually carries the most lending exposure.
-  const prodBaki = {Tabungan:0,Giro:0,Deposito:0,EDC:0,QRIS:0};
-  custs.forEach(c => {
-    if(c.tabungan.length) prodBaki.Tabungan += c.totalBakiDebet;
-    if(c.giro.length) prodBaki.Giro += c.totalBakiDebet;
-    if(c.deposito.length) prodBaki.Deposito += c.totalBakiDebet;
-    if(c.edc.length) prodBaki.EDC += c.totalBakiDebet;
-    if(c.qris.length) prodBaki.QRIS += c.totalBakiDebet;
-  });
-  State.charts.produkBaki = new Chart($('chartProdukBaki'), {
-    type:'doughnut',
-    data:{labels:Object.keys(prodBaki), datasets:[{data:Object.values(prodBaki), backgroundColor:CBLUE, borderWidth:2, borderColor:'#fff'}]},
-    options:{responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{position:'bottom', labels:{font:{size:11}}}, tooltip:{callbacks:{label:ctx=>ctx.label+': Rp '+ctx.parsed.toLocaleString('id-ID')}}}}
   });
 
   const topDebet = custs.slice().sort((a,b)=>b.totalBakiDebet-a.totalBakiDebet).slice(0,10);

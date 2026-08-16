@@ -369,6 +369,7 @@ table.data-table .ctr{text-align:center}
 
 /* ===================== EMPTY / TOAST ===================== */
 .empty{text-align:center;padding:40px 20px;color:var(--text-muted)}
+table.data-table td.empty{text-align:center}
 .toast-container{position:fixed;top:80px;right:24px;z-index:100;display:flex;flex-direction:column;gap:8px}
 .toast{
   background:var(--surface);border-left:4px solid var(--brand);
@@ -498,6 +499,10 @@ table.data-table .ctr{text-align:center}
         <label>RM Pengelola Kredit</label>
         <select id="gfRm"><option value="">Semua RM</option></select>
       </div>
+      <div class="gf-pill">
+        <label>RM Pengelola FT</label>
+        <select id="gfRmFt"><option value="">Semua RM FT</option></select>
+      </div>
       <button class="btn btn-outline btn-sm" id="btnClearGlobalFilter">Reset Filter</button>
       <span class="gf-hint" id="gfHint"></span>
     </div>
@@ -508,6 +513,7 @@ table.data-table .ctr{text-align:center}
       <button class="tab active" data-panel="overview">📊 Ringkasan</button>
       <button class="tab" data-panel="customers">👤 Customer 360<span class="badge" id="badgeCust">0</span></button>
       <button class="tab" data-panel="opportunity">Peluang Bisnis<span class="badge" id="badgeOpp">0</span></button>
+      <button class="tab" data-panel="priority">🎯 Prioritas Kunjungan<span class="badge" id="badgePriority">0</span></button>
     </div>
 
     <!-- TAB: OVERVIEW -->
@@ -600,6 +606,51 @@ table.data-table .ctr{text-align:center}
       </div>
     </div>
 
+    <!-- TAB: PRIORITY VISIT MATRIX -->
+    <div class="tab-panel" id="panel-priority">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🎯 Matrix Prioritas Kunjungan — OS × Funding Coverage</div>
+        </div>
+        <div class="panel-body">
+          <div class="info-banner">
+            <strong>Cara baca:</strong> Matrix ini menjawab <strong>"siapa yang relatif perlu diperhatikan"</strong> (WHO) dengan membandingkan Baki Debet/OS terhadap Funding Coverage nasabah dalam scope yang sedang difilter. Ini bukan keputusan final — kuadran <strong>Priority 1</strong> masih dicek lagi lewat <strong>Opportunity Trigger</strong> (WHY: apakah ada Funding Gap atau Merchant Gap) sebelum ditetapkan sebagai <strong>Priority Visit</strong>. Cut-off P75/P25 di sini bersifat <em>relatif terhadap data yang sedang tampil</em>, bukan angka absolut — kalau distribusi OS/Coverage sangat skewed (lihat tabel distribusi di bawah), proporsi tiap kuadran bisa menyesatkan, jadi selalu cek angka distribusinya dulu sebelum mempercayai proporsi kuadran secara mentah.
+          </div>
+
+          <div class="detail-section-title">Distribusi Baki Debet (OS) &amp; Funding Coverage — scope saat ini</div>
+          <div class="table-wrap" style="margin-bottom:18px">
+            <table class="data-table" style="max-width:560px">
+              <thead><tr><th>Percentile</th><th class="num">Baki Debet (OS)</th><th class="num">Funding Coverage</th></tr></thead>
+              <tbody id="priorityDistBody"></tbody>
+            </table>
+          </div>
+
+          <div class="detail-section-title">Step 1 — Matrix (WHO): Kuadran OS × Coverage</div>
+          <div class="opp-grid" id="priorityQuadGrid"></div>
+
+          <div class="chart-card" style="margin-bottom:18px">
+            <h3>Sebaran Nasabah — Baki Debet (OS) vs Funding Coverage</h3>
+            <div class="chart-canvas-wrap" style="height:360px"><canvas id="chartPriorityMatrix"></canvas></div>
+          </div>
+
+          <div class="detail-section-title">Step 2 — Opportunity Trigger (WHY) &amp; Rekomendasi (WHAT NEXT)</div>
+          <div class="search-wrap no-print" style="margin-bottom:12px;max-width:420px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="input" id="prioritySearch" placeholder="Cari nama nasabah atau CIF...">
+          </div>
+          <div class="table-wrap">
+            <table class="data-table" id="priorityTable">
+              <thead><tr>
+                <th>Nama Nasabah</th><th class="num">Baki Debet (OS)</th><th class="num">Funding Coverage</th><th>Kuadran</th><th>Funding Gap</th><th>Merchant Gap</th><th>Status</th><th>RM Pengelola Kredit</th>
+              </tr></thead>
+              <tbody id="priorityBody"></tbody>
+            </table>
+          </div>
+          <div class="upload-hint" style="margin-top:8px">Catatan: sinyal "Buyer/Supplier Opportunity" dan "Covenant Funding Gap" dari framework belum bisa dihitung karena datanya tidak tersedia di file yang diupload — trigger di atas hanya berdasarkan Funding Gap (belum punya Tabungan/Giro/Deposito) dan Merchant Gap (belum punya EDC/QRIS).</div>
+        </div>
+      </div>
+    </div>
+
   </section>
 </main>
 
@@ -629,12 +680,14 @@ const State = {
   files:{},        // key -> {file, name}
   raw:{},          // key -> parsed array of row objects
   customers:new Map(), // cif -> customer object (full, unfiltered universe)
-  globalFilter:{kanwil:'', kanca:'', uker:'', rm:''}, // scope selected by top filter bar
+  globalFilter:{kanwil:'', kanca:'', uker:'', rm:'', rmFt:''}, // scope selected by top filter bar
   filteredCust:[],
   sortKey:null, sortDir:1,
   expandedRows:new Set(),
   activeOpp:null,
   oppCategories:null,
+  priority:null,
+  activePriorityQuad:null,
   charts:{},
   diag:{},
 };
@@ -642,11 +695,12 @@ const State = {
 /* Returns the customer universe after applying the top global Kanwil/Kanca/Uker/RM filter */
 function getScopedCustomers(){
   let list = [...State.customers.values()];
-  const {kanwil, kanca, uker, rm} = State.globalFilter;
+  const {kanwil, kanca, uker, rm, rmFt} = State.globalFilter;
   if(kanwil) list = list.filter(c => c.kanwil === kanwil);
   if(kanca) list = list.filter(c => c.kanca === kanca);
   if(uker) list = list.filter(c => c.uker === uker);
   if(rm) list = list.filter(c => c.rmPengelola === rm);
+  if(rmFt) list = list.filter(c => c.rmFundingList.includes(rmFt));
   return list;
 }
 
@@ -1044,6 +1098,16 @@ function buildCustomers(){
     c.totalMerchantTrx = c.edc.reduce((s,t)=>s+t._trx,0) + c.qris.reduce((s,t)=>s+t._trx,0);
     c.fundingCoverage = c.totalBakiDebet > 0 ? (c.totalFunding / c.totalBakiDebet) : null;
     c.rmPengelola = cleanPn(c.loans[0]?.pnPengelola);
+    // Union of all funding/merchant RM names across every product this customer holds —
+    // used for the separate "RM Pengelola FT" filter (a funding RM may manage the
+    // customer's Tabungan but not their Giro, etc., so this is a set, not one field).
+    c.rmFundingList = [...new Set([
+      ...c.tabungan.map(t => cleanPn(t.pnPengelola)),
+      ...c.giro.map(t => cleanPn(t.pnPengelola)),
+      ...c.deposito.map(t => cleanPn(t.pnRmDana)),
+      ...c.edc.map(m => combinePn(m.pnUser, m.namaUser)),
+      ...c.qris.map(m => combinePn(m.pn, m.pnNama)),
+    ].filter(v => v && v !== '-'))];
 
     const opp = [];
     if(c.tabungan.length===0) opp.push('noTabungan');
@@ -1112,15 +1176,25 @@ function refreshRmOptions(){
   const rmSet = new Set(all.map(c=>c.rmPengelola).filter(v => v && v !== '-'));
   $('gfRm').innerHTML = '<option value="">Semua RM</option>' +
     [...rmSet].sort().map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  refreshRmFtOptions();
+}
+function refreshRmFtOptions(){
+  const kanwil = $('gfKanwil').value, kanca = $('gfKanca').value, uker = $('gfUker').value;
+  const all = [...State.customers.values()].filter(c =>
+    (!kanwil || c.kanwil===kanwil) && (!kanca || c.kanca===kanca) && (!uker || c.uker===uker));
+  const rmFtSet = new Set(all.flatMap(c => c.rmFundingList));
+  $('gfRmFt').innerHTML = '<option value="">Semua RM FT</option>' +
+    [...rmFtSet].sort().map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
 }
 function applyGlobalFilter(){
-  State.globalFilter = {kanwil:$('gfKanwil').value, kanca:$('gfKanca').value, uker:$('gfUker').value, rm:$('gfRm').value};
+  State.globalFilter = {kanwil:$('gfKanwil').value, kanca:$('gfKanca').value, uker:$('gfUker').value, rm:$('gfRm').value, rmFt:$('gfRmFt').value};
   const n = getScopedCustomers().length;
   $('gfHint').textContent = `Menampilkan ${n.toLocaleString('id-ID')} dari ${State.customers.size.toLocaleString('id-ID')} nasabah`;
   renderStats();
   applyCustFilters();
   renderOppGrid();
   renderCharts();
+  renderPriorityTab();
 }
 
 /* Pre-selects the filter to a specific branch on first load so the dashboard
@@ -1404,6 +1478,183 @@ window.selectOpp = selectOpp;
 $('oppSearch').addEventListener('input', () => { if(State.activeOpp) selectOpp(State.activeOpp); });
 
 /* ===================================================================
+   PRIORITY VISIT MATRIX (OS × Funding Coverage)
+   ---------------------------------------------------------------
+   Two-stage framework:
+     STEP 1 — Matrix (WHO): relative screening. Baki Debet (OS) vs
+       Funding Coverage, split at P75 (OS) / P25 (Coverage) *within the
+       currently scoped/filtered customer set* — these cut-offs are
+       relative, not absolute, and are shown explicitly (with a full
+       distribution table) so the person reading can judge whether a
+       25/75 split is actually meaningful for this data, or skewed.
+     STEP 2 — Opportunity Trigger (WHY): only customers landing in the
+       "Priority 1" quadrant (high OS + low coverage) get checked for an
+       actual business reason to visit (Funding Gap / Merchant Gap, the
+       two trigger signals we can compute from the uploaded data). Only
+       if at least one trigger fires does a Priority-1 customer become a
+       "Priority Visit" — otherwise it's downgraded to "Review" so the
+       matrix alone never plays final judge.
+   ================================================================= */
+const QUAD_DEFS = {
+  p1:       {label:'Priority 1',  sub:'OS tinggi (top 25%) + Funding Coverage rendah (bottom 25%) — kandidat utama untuk dicek lebih lanjut.', badgeCls:'k-5'},
+  maintain: {label:'Maintain',    sub:'OS tinggi dan Funding Coverage juga tinggi — relationship sudah kuat, jaga & pantau.', badgeCls:'k-1'},
+  monitor:  {label:'Monitor',     sub:'OS rendah dan Funding Coverage rendah — prioritas kunjungan rendah untuk saat ini.', badgeCls:'k-3'},
+  stable:   {label:'Stable',      sub:'OS rendah namun Funding Coverage tinggi — nasabah kecil tapi sudah well-covered.', badgeCls:'k-2'},
+};
+
+function percentile(sortedArr, p){
+  if(!sortedArr.length) return 0;
+  const idx = (p/100) * (sortedArr.length-1);
+  const lo = Math.floor(idx), hi = Math.ceil(idx);
+  if(lo === hi) return sortedArr[lo];
+  return sortedArr[lo] + (sortedArr[hi]-sortedArr[lo]) * (idx-lo);
+}
+
+function computePriorityData(){
+  const custs = getScopedCustomers().filter(c => c.totalBakiDebet > 0);
+  const osArr = custs.map(c => c.totalBakiDebet).sort((a,b)=>a-b);
+  const covArr = custs.map(c => c.fundingCoverage ?? 0).sort((a,b)=>a-b);
+  const p75OS = percentile(osArr, 75);
+  const p25Cov = percentile(covArr, 25);
+  const distOS = {min:osArr[0]||0, p25:percentile(osArr,25), median:percentile(osArr,50), p75:p75OS, max:osArr[osArr.length-1]||0};
+  const distCov = {min:covArr[0]||0, p25:p25Cov, median:percentile(covArr,50), p75:percentile(covArr,75), max:covArr[covArr.length-1]||0};
+
+  const list = custs.map(c => {
+    const cov = c.fundingCoverage ?? 0;
+    const highOS = c.totalBakiDebet >= p75OS;
+    const lowCov = cov <= p25Cov;
+    const quad = highOS && lowCov ? 'p1' : highOS ? 'maintain' : lowCov ? 'monitor' : 'stable';
+    const fundingGap = c.opportunities.includes('noTabungan') || c.opportunities.includes('noGiro') || c.opportunities.includes('noDeposito');
+    const merchantGap = c.opportunities.includes('noMerchant');
+    const triggerCount = (fundingGap?1:0) + (merchantGap?1:0);
+    let status;
+    if(quad === 'p1') status = triggerCount >= 1 ? 'Priority Visit' : 'Review';
+    else status = QUAD_DEFS[quad].label;
+    return {c, cov, quad, fundingGap, merchantGap, triggerCount, status};
+  });
+
+  const quadCounts = {p1:0, maintain:0, monitor:0, stable:0};
+  list.forEach(r => quadCounts[r.quad]++);
+
+  State.priority = {list, p75OS, p25Cov, distOS, distCov, quadCounts};
+}
+
+function renderPriorityDist(){
+  const {distOS, distCov} = State.priority;
+  const rows = [
+    ['Min', distOS.min, distCov.min],
+    ['P25', distOS.p25, distCov.p25],
+    ['Median', distOS.median, distCov.median],
+    ['P75 (cut-off OS)', distOS.p75, distCov.p75],
+    ['Max', distOS.max, distCov.max],
+  ];
+  $('priorityDistBody').innerHTML = rows.map(([lbl, os, cov]) => `
+    <tr><td>${lbl}</td><td class="num">${fmtRupiah(os)}</td><td class="num">${(cov*100).toFixed(1)}%</td></tr>
+  `).join('');
+}
+
+function renderPriorityQuadGrid(){
+  const {quadCounts} = State.priority;
+  $('priorityQuadGrid').innerHTML = Object.keys(QUAD_DEFS).map(q => {
+    const def = QUAD_DEFS[q];
+    const count = quadCounts[q] || 0;
+    const isEmpty = count === 0;
+    return `
+      <div class="opp-card ${isEmpty?'disabled':''}" data-quad="${q}" onclick="${isEmpty?'':`selectPriorityQuad('${q}')`}">
+        <div class="opp-icon">${escapeHtml(def.label.toUpperCase())}</div>
+        <div class="opp-count">${count}</div>
+        <div class="opp-label">${def.label}</div>
+        <div class="opp-sub">${def.sub}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function selectPriorityQuad(q){
+  State.activePriorityQuad = (State.activePriorityQuad === q) ? null : q;
+  document.querySelectorAll('#priorityQuadGrid .opp-card').forEach(el => el.classList.toggle('active', el.dataset.quad === State.activePriorityQuad));
+  renderPriorityTable();
+}
+window.selectPriorityQuad = selectPriorityQuad;
+
+function statusBadgeCls(status){
+  if(status === 'Priority Visit') return 'k-5';
+  if(status === 'Review') return 'k-2';
+  if(status === 'Maintain') return 'k-1';
+  if(status === 'Monitor') return 'k-3';
+  return 'k-2'; // Stable
+}
+
+function renderPriorityTable(){
+  const q = ($('prioritySearch').value || '').toLowerCase().trim();
+  let rows = State.priority.list;
+  if(State.activePriorityQuad) rows = rows.filter(r => r.quad === State.activePriorityQuad);
+  if(q) rows = rows.filter(r => `${r.c.nama} ${r.c.cif}`.toLowerCase().includes(q));
+  const order = {'Priority Visit':0, 'Review':1, 'Maintain':2, 'Stable':3, 'Monitor':4};
+  rows = rows.slice().sort((a,b) => {
+    const oa = order[a.status] ?? 5, ob = order[b.status] ?? 5;
+    if(oa !== ob) return oa - ob;
+    return b.c.totalBakiDebet - a.c.totalBakiDebet;
+  });
+  $('priorityBody').innerHTML = rows.map(r => `
+    <tr>
+      <td><strong>${escapeHtml(r.c.nama)}</strong></td>
+      <td class="num">${fmtRupiah(r.c.totalBakiDebet)}</td>
+      <td class="num">${(r.cov*100).toFixed(1)}%</td>
+      <td><span class="badge-pill ${QUAD_DEFS[r.quad].badgeCls}">${QUAD_DEFS[r.quad].label}</span></td>
+      <td>${r.fundingGap ? '✓' : '–'}</td>
+      <td>${r.merchantGap ? '✓' : '–'}</td>
+      <td><span class="badge-pill ${statusBadgeCls(r.status)}">${escapeHtml(r.status)}</span></td>
+      <td>${escapeHtml(cleanPn(r.c.loans[0]?.pnPengelola))}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="8" class="empty">Tidak ada nasabah yang cocok.</td></tr>';
+}
+
+function renderPriorityChart(){
+  if(State.charts.priority){ try{ State.charts.priority.destroy(); }catch(e){} }
+  const p = State.priority;
+  const colorMap = {p1:'#d64545', maintain:'#0a9d6e', monitor:'#e07b1f', stable:'#d69a12'};
+  const points = p.list.map(r => ({x:r.c.totalBakiDebet, y:+(r.cov*100).toFixed(2), label:r.c.nama, quad:r.quad}));
+  const maxOS = Math.max(...p.list.map(r=>r.c.totalBakiDebet), p.p75OS, 1);
+  const maxCovPct = Math.max(...p.list.map(r=>r.cov*100), p.p25Cov*100, 10);
+
+  State.charts.priority = new Chart($('chartPriorityMatrix'), {
+    data:{
+      datasets:[
+        {type:'scatter', label:'Nasabah', data:points, backgroundColor:points.map(pt=>colorMap[pt.quad]||'#8ba6bd'), pointRadius:5, pointHoverRadius:7},
+        {type:'line', label:'Cut-off OS (P75)', data:[{x:p.p75OS,y:0},{x:p.p75OS,y:maxCovPct}], borderColor:'#8ba6bd', borderWidth:1, borderDash:[6,4], pointRadius:0, fill:false},
+        {type:'line', label:'Cut-off Coverage (P25)', data:[{x:0,y:p.p25Cov*100},{x:maxOS,y:p.p25Cov*100}], borderColor:'#8ba6bd', borderWidth:1, borderDash:[6,4], pointRadius:0, fill:false},
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{
+        x:{title:{display:true,text:'Baki Debet / OS'}, ticks:{callback:v=>'Rp '+(v/1e6).toFixed(0)+'jt'}},
+        y:{title:{display:true,text:'Funding Coverage (%)'}},
+      },
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx => ctx.dataset.type==='scatter'
+          ? `${ctx.raw.label}: OS ${fmtRupiah(ctx.raw.x)}, Coverage ${ctx.raw.y}%`
+          : ctx.dataset.label}},
+      }
+    }
+  });
+}
+
+function renderPriorityTab(){
+  computePriorityData();
+  renderPriorityDist();
+  renderPriorityQuadGrid();
+  renderPriorityChart();
+  State.activePriorityQuad = null;
+  renderPriorityTable();
+  const priorityVisitCount = State.priority.list.filter(r => r.status === 'Priority Visit').length;
+  $('badgePriority').textContent = priorityVisitCount;
+}
+$('prioritySearch').addEventListener('input', renderPriorityTable);
+
+/* ===================================================================
    CHARTS
    ================================================================= */
 function renderCharts(){
@@ -1600,6 +1851,13 @@ function generateDummyCustomers(){
     c.totalMerchantTrx = edc.reduce((s,t)=>s+t._trx,0) + qris.reduce((s,t)=>s+t._trx,0);
     c.fundingCoverage = c.totalBakiDebet>0 ? (c.totalFunding/c.totalBakiDebet) : null;
     c.rmPengelola = cleanPn(rm);
+    c.rmFundingList = [...new Set([
+      ...tabungan.map(t => cleanPn(t.pnPengelola)),
+      ...giro.map(t => cleanPn(t.pnPengelola)),
+      ...deposito.map(t => cleanPn(t.pnRmDana)),
+      ...edc.map(m => combinePn(m.pnUser, m.namaUser)),
+      ...qris.map(m => combinePn(m.pn, m.pnNama)),
+    ].filter(v => v && v !== '-'))];
 
     const opp = [];
     if(c.tabungan.length===0) opp.push('noTabungan');
@@ -1679,6 +1937,15 @@ document.querySelectorAll('.tab').forEach(t => {
     document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
     t.classList.add('active');
     $('panel-'+t.dataset.panel).classList.add('active');
+    // Charts created while their tab was hidden can end up with a wrong/zero
+    // size (Chart.js can't measure a display:none canvas) — force a resize
+    // once the panel becomes visible so they render correctly.
+    if(t.dataset.panel === 'priority' && State.charts.priority){
+      setTimeout(() => State.charts.priority.resize(), 0);
+    }
+    if(t.dataset.panel === 'overview'){
+      setTimeout(() => Object.values(State.charts).forEach(c => { try{ c.resize(); }catch(e){} }), 0);
+    }
   });
 });
 
@@ -1695,8 +1962,9 @@ $('gfKanwil').addEventListener('change', () => { refreshKancaOptions(); applyGlo
 $('gfKanca').addEventListener('change', () => { refreshUkerOptions(); applyGlobalFilter(); });
 $('gfUker').addEventListener('change', () => { refreshRmOptions(); applyGlobalFilter(); });
 $('gfRm').addEventListener('change', applyGlobalFilter);
+$('gfRmFt').addEventListener('change', applyGlobalFilter);
 $('btnClearGlobalFilter').addEventListener('click', () => {
-  $('gfKanwil').value=''; refreshKancaOptions(); $('gfKanca').value=''; refreshUkerOptions(); $('gfUker').value=''; refreshRmOptions(); $('gfRm').value='';
+  $('gfKanwil').value=''; refreshKancaOptions(); $('gfKanca').value=''; refreshUkerOptions(); $('gfUker').value=''; refreshRmOptions(); $('gfRm').value=''; $('gfRmFt').value='';
   applyGlobalFilter();
 });
 document.addEventListener('click', e => {

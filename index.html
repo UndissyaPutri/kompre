@@ -617,23 +617,55 @@ table.data-table td.empty{text-align:center}
             <strong>Cara baca:</strong> Matrix ini menjawab <strong>"siapa yang relatif perlu diperhatikan"</strong> (WHO) dengan membandingkan Baki Debet/OS terhadap Funding Coverage nasabah dalam scope yang sedang difilter. Ini bukan keputusan final — kuadran <strong>Priority 1</strong> masih dicek lagi lewat <strong>Opportunity Trigger</strong> (WHY: apakah ada Funding Gap atau Merchant Gap) sebelum ditetapkan sebagai <strong>Priority Visit</strong>. Cut-off P75/P25 di sini bersifat <em>relatif terhadap data yang sedang tampil</em>, bukan angka absolut — kalau distribusi OS/Coverage sangat skewed (lihat tabel distribusi di bawah), proporsi tiap kuadran bisa menyesatkan, jadi selalu cek angka distribusinya dulu sebelum mempercayai proporsi kuadran secara mentah.
           </div>
 
+          <div class="detail-section-title">Definisi &amp; Istilah</div>
+          <div class="detail-grid" style="margin-bottom:18px">
+            <div class="detail-field"><span class="lbl">OS (Baki Debet)</span><span class="val">Total outstanding pinjaman aktif nasabah saat ini.</span></div>
+            <div class="detail-field"><span class="lbl">Funding Coverage</span><span class="val">(Tabungan+Giro+Deposito) ÷ Baki Debet — makin tinggi, makin besar porsi pinjaman yang "ditutupi" dana nasabah sendiri di BRI.</span></div>
+            <div class="detail-field"><span class="lbl">Cut-off OS (P75)</span><span class="val">Ambang batas "OS tinggi" — dihitung dari persentil-75 data yang sedang tampil (relatif, lihat tabel distribusi).</span></div>
+            <div class="detail-field"><span class="lbl">Cut-off Coverage (P25)</span><span class="val">Ambang batas "Coverage rendah" — persentil-25 data yang sedang tampil (relatif).</span></div>
+            <div class="detail-field"><span class="lbl">Priority 1</span><span class="val">OS ≥ cut-off P75 DAN Coverage ≤ cut-off P25 (OS besar, tapi funding-nya kecil).</span></div>
+            <div class="detail-field"><span class="lbl">Maintain</span><span class="val">OS ≥ cut-off P75, Coverage di atas cut-off P25 (OS besar, funding-nya sudah cukup).</span></div>
+            <div class="detail-field"><span class="lbl">Monitor</span><span class="val">OS di bawah cut-off P75, Coverage ≤ cut-off P25 (OS kecil, funding-nya juga kecil).</span></div>
+            <div class="detail-field"><span class="lbl">Stable</span><span class="val">OS di bawah cut-off P75, Coverage di atas cut-off P25 (OS kecil, tapi funding-nya sudah cukup).</span></div>
+            <div class="detail-field"><span class="lbl">Funding Gap</span><span class="val">Nasabah belum punya salah satu dari Tabungan / Giro / Deposito.</span></div>
+            <div class="detail-field"><span class="lbl">Merchant Gap</span><span class="val">Nasabah belum punya EDC maupun QRIS.</span></div>
+            <div class="detail-field"><span class="lbl">Priority Visit</span><span class="val">Nasabah Priority 1 YANG punya ≥1 trigger (Funding Gap dan/atau Merchant Gap) — ada alasan bisnis konkret untuk dikunjungi.</span></div>
+            <div class="detail-field"><span class="lbl">Review</span><span class="val">Nasabah Priority 1 TAPI tidak ada trigger terdeteksi — OS besar & coverage kecil, namun belum tentu ada peluang nyata; perlu dicek manual dulu.</span></div>
+          </div>
+
           <div class="detail-section-title">Distribusi Baki Debet (OS) &amp; Funding Coverage — scope saat ini</div>
-          <div class="table-wrap" style="margin-bottom:18px">
+          <div class="table-wrap" style="margin-bottom:10px">
             <table class="data-table" style="max-width:560px">
               <thead><tr><th>Percentile</th><th class="num">Baki Debet (OS)</th><th class="num">Funding Coverage</th></tr></thead>
               <tbody id="priorityDistBody"></tbody>
             </table>
           </div>
+          <div class="upload-hint" style="margin-bottom:18px">Kalau angka Min–Max di atas jauh berjarak (contoh: Median jauh dari P75), distribusinya skewed — artinya proporsi kuadran di bawah bisa kurang representatif. Kalau perlu, isi ambang batas manual di bawah ini untuk menggantikan cut-off P75/P25 otomatis.</div>
+
+          <div class="global-filter-bar no-print" style="margin-bottom:18px">
+            <div class="gf-pill">
+              <label>Ambang OS Manual (Rp, opsional)</label>
+              <input class="input" type="number" id="priorityOsOverride" placeholder="Kosongkan = pakai P75 otomatis">
+            </div>
+            <div class="gf-pill">
+              <label>Ambang Coverage Manual (%, opsional)</label>
+              <input class="input" type="number" id="priorityCovOverride" placeholder="Kosongkan = pakai P25 otomatis">
+            </div>
+            <button class="btn btn-outline btn-sm" id="btnApplyPriorityOverride">Terapkan</button>
+            <button class="btn btn-outline btn-sm" id="btnResetPriorityOverride">Reset ke Otomatis</button>
+          </div>
 
           <div class="detail-section-title">Step 1 — Matrix (WHO): Kuadran OS × Coverage</div>
           <div class="opp-grid" id="priorityQuadGrid"></div>
 
-          <div class="chart-card" style="margin-bottom:18px">
+          <div class="chart-card" style="margin-bottom:8px">
             <h3>Sebaran Nasabah — Baki Debet (OS) vs Funding Coverage</h3>
             <div class="chart-canvas-wrap" style="height:360px"><canvas id="chartPriorityMatrix"></canvas></div>
           </div>
+          <div class="product-pills" id="priorityChartLegend" style="margin-bottom:18px"></div>
 
           <div class="detail-section-title">Step 2 — Opportunity Trigger (WHY) &amp; Rekomendasi (WHAT NEXT)</div>
+          <div class="upload-hint" style="margin-bottom:8px" id="priorityTableHint"></div>
           <div class="search-wrap no-print" style="margin-bottom:12px;max-width:420px">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input class="input" id="prioritySearch" placeholder="Cari nama nasabah atau CIF...">
@@ -688,6 +720,7 @@ const State = {
   oppCategories:null,
   priority:null,
   activePriorityQuad:null,
+  priorityOverride:{os:null, cov:null},
   charts:{},
   diag:{},
 };
@@ -1514,10 +1547,18 @@ function computePriorityData(){
   const custs = getScopedCustomers().filter(c => c.totalBakiDebet > 0);
   const osArr = custs.map(c => c.totalBakiDebet).sort((a,b)=>a-b);
   const covArr = custs.map(c => c.fundingCoverage ?? 0).sort((a,b)=>a-b);
-  const p75OS = percentile(osArr, 75);
-  const p25Cov = percentile(covArr, 25);
-  const distOS = {min:osArr[0]||0, p25:percentile(osArr,25), median:percentile(osArr,50), p75:p75OS, max:osArr[osArr.length-1]||0};
-  const distCov = {min:covArr[0]||0, p25:p25Cov, median:percentile(covArr,50), p75:percentile(covArr,75), max:covArr[covArr.length-1]||0};
+  const p75OS_auto = percentile(osArr, 75);
+  const p25Cov_auto = percentile(covArr, 25);
+  // Manual overrides (from the "Ambang Manual" inputs) replace the auto
+  // percentile cut-off when set — this is the "absolute floor" escape hatch
+  // for when the distribution is too skewed for a relative P75/P25 split to
+  // mean anything (exactly the risk flagged in the info banner above).
+  const ov = State.priorityOverride || {os:null, cov:null};
+  const p75OS = (ov.os != null && !isNaN(ov.os)) ? ov.os : p75OS_auto;
+  const p25Cov = (ov.cov != null && !isNaN(ov.cov)) ? ov.cov/100 : p25Cov_auto;
+  const usingOverride = (ov.os != null && !isNaN(ov.os)) || (ov.cov != null && !isNaN(ov.cov));
+  const distOS = {min:osArr[0]||0, p25:percentile(osArr,25), median:percentile(osArr,50), p75:p75OS_auto, max:osArr[osArr.length-1]||0};
+  const distCov = {min:covArr[0]||0, p25:p25Cov_auto, median:percentile(covArr,50), p75:percentile(covArr,75), max:covArr[covArr.length-1]||0};
 
   const list = custs.map(c => {
     const cov = c.fundingCoverage ?? 0;
@@ -1536,7 +1577,7 @@ function computePriorityData(){
   const quadCounts = {p1:0, maintain:0, monitor:0, stable:0};
   list.forEach(r => quadCounts[r.quad]++);
 
-  State.priority = {list, p75OS, p25Cov, distOS, distCov, quadCounts};
+  State.priority = {list, p75OS, p25Cov, distOS, distCov, quadCounts, usingOverride};
 }
 
 function renderPriorityDist(){
@@ -1610,10 +1651,17 @@ function renderPriorityTable(){
   `).join('') || '<tr><td colspan="8" class="empty">Tidak ada nasabah yang cocok.</td></tr>';
 }
 
+const QUAD_COLOR = {p1:'#d64545', maintain:'#0a9d6e', monitor:'#e07b1f', stable:'#d69a12'};
+
+function renderPriorityLegend(){
+  $('priorityChartLegend').innerHTML = Object.keys(QUAD_DEFS).map(q => `
+    <span class="pill" style="background:${QUAD_COLOR[q]};color:#fff" title="${escapeHtml(QUAD_DEFS[q].sub)}">● ${escapeHtml(QUAD_DEFS[q].label)}</span>
+  `).join('');
+}
+
 function renderPriorityChart(){
   if(State.charts.priority){ try{ State.charts.priority.destroy(); }catch(e){} }
   const p = State.priority;
-  const colorMap = {p1:'#d64545', maintain:'#0a9d6e', monitor:'#e07b1f', stable:'#d69a12'};
   const points = p.list.map(r => ({x:r.c.totalBakiDebet, y:+(r.cov*100).toFixed(2), label:r.c.nama, quad:r.quad}));
   const maxOS = Math.max(...p.list.map(r=>r.c.totalBakiDebet), p.p75OS, 1);
   const maxCovPct = Math.max(...p.list.map(r=>r.cov*100), p.p25Cov*100, 10);
@@ -1621,9 +1669,9 @@ function renderPriorityChart(){
   State.charts.priority = new Chart($('chartPriorityMatrix'), {
     data:{
       datasets:[
-        {type:'scatter', label:'Nasabah', data:points, backgroundColor:points.map(pt=>colorMap[pt.quad]||'#8ba6bd'), pointRadius:5, pointHoverRadius:7},
-        {type:'line', label:'Cut-off OS (P75)', data:[{x:p.p75OS,y:0},{x:p.p75OS,y:maxCovPct}], borderColor:'#8ba6bd', borderWidth:1, borderDash:[6,4], pointRadius:0, fill:false},
-        {type:'line', label:'Cut-off Coverage (P25)', data:[{x:0,y:p.p25Cov*100},{x:maxOS,y:p.p25Cov*100}], borderColor:'#8ba6bd', borderWidth:1, borderDash:[6,4], pointRadius:0, fill:false},
+        {type:'scatter', label:'Nasabah', data:points, backgroundColor:points.map(pt=>QUAD_COLOR[pt.quad]||'#8ba6bd'), pointRadius:5, pointHoverRadius:7},
+        {type:'line', label:'Cut-off OS', data:[{x:p.p75OS,y:0},{x:p.p75OS,y:maxCovPct}], borderColor:'#8ba6bd', borderWidth:1, borderDash:[6,4], pointRadius:0, fill:false},
+        {type:'line', label:'Cut-off Coverage', data:[{x:0,y:p.p25Cov*100},{x:maxOS,y:p.p25Cov*100}], borderColor:'#8ba6bd', borderWidth:1, borderDash:[6,4], pointRadius:0, fill:false},
       ]
     },
     options:{
@@ -1636,10 +1684,11 @@ function renderPriorityChart(){
         legend:{display:false},
         tooltip:{callbacks:{label:ctx => ctx.dataset.type==='scatter'
           ? `${ctx.raw.label}: OS ${fmtRupiah(ctx.raw.x)}, Coverage ${ctx.raw.y}%`
-          : ctx.dataset.label}},
+          : `${ctx.dataset.label}: ${ctx.dataset.label.includes('OS') ? fmtRupiah(p.p75OS) : (p.p25Cov*100).toFixed(1)+'%'}`}},
       }
     }
   });
+  renderPriorityLegend();
 }
 
 function renderPriorityTab(){
@@ -1651,8 +1700,32 @@ function renderPriorityTab(){
   renderPriorityTable();
   const priorityVisitCount = State.priority.list.filter(r => r.status === 'Priority Visit').length;
   $('badgePriority').textContent = priorityVisitCount;
+
+  const p = State.priority;
+  const overrideNote = p.usingOverride ? ' (memakai ambang manual yang kamu isi)' : ' (memakai P75/P25 otomatis dari data yang tampil)';
+  $('priorityTableHint').textContent =
+    `Cut-off saat ini: OS ≥ ${fmtRupiah(p.p75OS)}, Coverage ≤ ${(p.p25Cov*100).toFixed(1)}%${overrideNote}. ` +
+    `Sebaran kuadran: Priority 1 = ${p.quadCounts.p1}, Maintain = ${p.quadCounts.maintain}, Monitor = ${p.quadCounts.monitor}, Stable = ${p.quadCounts.stable} nasabah. ` +
+    `Kalau salah satu kuadran mendominasi (misalnya hampir semua "Stable"), itu tandanya distribusi OS/Coverage di scope ini skewed — coba isi ambang manual di atas dengan angka yang lebih masuk akal untuk data kamu.`;
 }
 $('prioritySearch').addEventListener('input', renderPriorityTable);
+$('btnApplyPriorityOverride').addEventListener('click', () => {
+  const osVal = $('priorityOsOverride').value;
+  const covVal = $('priorityCovOverride').value;
+  State.priorityOverride = {
+    os: osVal !== '' ? Number(osVal) : null,
+    cov: covVal !== '' ? Number(covVal) : null,
+  };
+  renderPriorityTab();
+  showToast('Ambang manual diterapkan ke matrix.', 'success');
+});
+$('btnResetPriorityOverride').addEventListener('click', () => {
+  $('priorityOsOverride').value = '';
+  $('priorityCovOverride').value = '';
+  State.priorityOverride = {os:null, cov:null};
+  renderPriorityTab();
+  showToast('Kembali ke cut-off P75/P25 otomatis.', 'info');
+});
 
 /* ===================================================================
    CHARTS

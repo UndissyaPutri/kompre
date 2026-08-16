@@ -692,7 +692,7 @@ table.data-table td.empty{text-align:center}
 
           <div class="chart-card" style="margin-bottom:18px">
             <h3>Sebaran Nasabah — Baki Debet (OS) vs Funding Coverage</h3>
-            <div class="chart-canvas-wrap" style="height:360px"><canvas id="chartPriorityMatrix"></canvas></div>
+            <div id="priorityScatterWrap" style="width:100%;overflow-x:auto"></div>
           </div>
 
           <div class="detail-section-title">Step 2 — Opportunity</div>
@@ -1722,36 +1722,63 @@ function renderPriorityTable(){
 }
 
 
+/* Rendered as plain SVG rather than a Chart.js canvas. This widget kept coming
+   up blank on the live deployment even after fixing the tab-visibility timing
+   (Chart.js canvases can be finicky about container sizing across browsers/
+   deployments in ways that are hard to debug remotely). Static SVG has none
+   of that: it draws correctly the instant it's inserted into the DOM, whether
+   or not its tab is visible yet, with zero dependency on canvas measurement. */
 function renderPriorityChart(){
-  if(State.charts.priority){ try{ State.charts.priority.destroy(); }catch(e){} }
   const p = State.priority;
-  const points = p.list.map(r => ({x:r.c.totalBakiDebet, y:+(r.cov*100).toFixed(2), label:r.c.nama, quad:r.quad}));
-  const maxOS = Math.max(...p.list.map(r=>r.c.totalBakiDebet), p.p75OS, 1);
-  const maxCovPct = Math.max(...p.list.map(r=>r.cov*100), p.p25Cov*100, 10);
+  const wrap = $('priorityScatterWrap');
+  if(!p.list.length){
+    wrap.innerHTML = '<div class="empty">Tidak ada nasabah dengan Baki Debet aktif pada scope ini.</div>';
+    return;
+  }
 
-  State.charts.priority = new Chart($('chartPriorityMatrix'), {
-    type:'scatter',
-    data:{
-      datasets:[
-        {type:'scatter', label:'Nasabah', data:points, backgroundColor:points.map(pt=>QUAD_COLOR[pt.quad]||'#8ba6bd'), pointRadius:5, pointHoverRadius:7},
-        {type:'line', label:'Cut-off OS', data:[{x:p.p75OS,y:0},{x:p.p75OS,y:maxCovPct}], borderColor:'#8ba6bd', borderWidth:1, borderDash:[6,4], pointRadius:0, fill:false},
-        {type:'line', label:'Cut-off Coverage', data:[{x:0,y:p.p25Cov*100},{x:maxOS,y:p.p25Cov*100}], borderColor:'#8ba6bd', borderWidth:1, borderDash:[6,4], pointRadius:0, fill:false},
-      ]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      scales:{
-        x:{title:{display:true,text:'Baki Debet / OS'}, ticks:{callback:v=>'Rp '+(v/1e6).toFixed(0)+'jt'}},
-        y:{title:{display:true,text:'Funding Coverage (%)'}},
-      },
-      plugins:{
-        legend:{display:false},
-        tooltip:{callbacks:{label:ctx => ctx.dataset.type==='scatter'
-          ? `${ctx.raw.label}: OS ${fmtRupiah(ctx.raw.x)}, Coverage ${ctx.raw.y}%`
-          : `${ctx.dataset.label}: ${ctx.dataset.label.includes('OS') ? fmtRupiah(p.p75OS) : (p.p25Cov*100).toFixed(1)+'%'}`}},
-      }
-    }
-  });
+  const W = 900, H = 380;
+  const padL = 80, padR = 20, padT = 20, padB = 55;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const maxOS = Math.max(...p.list.map(r=>r.c.totalBakiDebet), p.p75OS, 1) * 1.05;
+  const maxCov = Math.max(...p.list.map(r=>r.cov*100), p.p25Cov*100, 10) * 1.1;
+
+  const xPix = os => padL + (os/maxOS) * plotW;
+  const yPix = cov => padT + (1 - cov/maxCov) * plotH;
+
+  const xTicks = [0,1,2,3,4].map(i => maxOS * i/4);
+  const yTicks = [0,1,2,3,4].map(i => maxCov * i/4);
+
+  const gridLines = [
+    ...xTicks.map(t => `<line x1="${xPix(t)}" y1="${padT}" x2="${xPix(t)}" y2="${padT+plotH}" stroke="#eef1f4" stroke-width="1"/>`),
+    ...yTicks.map(t => `<line x1="${padL}" y1="${yPix(t)}" x2="${padL+plotW}" y2="${yPix(t)}" stroke="#eef1f4" stroke-width="1"/>`),
+  ].join('');
+
+  const xLabels = xTicks.map(t => `<text x="${xPix(t)}" y="${padT+plotH+18}" font-size="10.5" fill="#5a7691" text-anchor="middle">${(t/1e6).toFixed(0)}jt</text>`).join('');
+  const yLabels = yTicks.map(t => `<text x="${padL-10}" y="${yPix(t)+4}" font-size="10.5" fill="#5a7691" text-anchor="end">${t.toFixed(0)}%</text>`).join('');
+
+  const cutoffX = `<line x1="${xPix(p.p75OS)}" y1="${padT}" x2="${xPix(p.p75OS)}" y2="${padT+plotH}" stroke="#8ba6bd" stroke-width="1.5" stroke-dasharray="6,4"/>`;
+  const cutoffY = `<line x1="${padL}" y1="${yPix(p.p25Cov*100)}" x2="${padL+plotW}" y2="${yPix(p.p25Cov*100)}" stroke="#8ba6bd" stroke-width="1.5" stroke-dasharray="6,4"/>`;
+
+  const points = p.list.map(r => {
+    const cx = xPix(r.c.totalBakiDebet), cy = yPix(r.cov*100);
+    const color = QUAD_COLOR[r.quad] || '#8ba6bd';
+    const tip = `${r.c.nama}: OS ${fmtRupiah(r.c.totalBakiDebet)}, Coverage ${(r.cov*100).toFixed(1)}%`;
+    return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="5" fill="${color}" fill-opacity="0.85" stroke="#fff" stroke-width="1"><title>${escapeHtml(tip)}</title></circle>`;
+  }).join('');
+
+  const axisLines = `
+    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+plotH}" stroke="#0b2540" stroke-width="1.2"/>
+    <line x1="${padL}" y1="${padT+plotH}" x2="${padL+plotW}" y2="${padT+plotH}" stroke="#0b2540" stroke-width="1.2"/>
+  `;
+
+  const axisTitles = `
+    <text x="${padL+plotW/2}" y="${H-8}" font-size="12" fill="#0b2540" font-weight="700" text-anchor="middle">Baki Debet / OS (Rp juta)</text>
+    <text x="16" y="${padT+plotH/2}" font-size="12" fill="#0b2540" font-weight="700" text-anchor="middle" transform="rotate(-90 16 ${padT+plotH/2})">Funding Coverage (%)</text>
+  `;
+
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:560px;display:block" xmlns="http://www.w3.org/2000/svg">
+    ${gridLines}${axisLines}${cutoffX}${cutoffY}${points}${xLabels}${yLabels}${axisTitles}
+  </svg>`;
 }
 
 function renderPriorityTab(){
@@ -1759,13 +1786,7 @@ function renderPriorityTab(){
   renderPriorityDist();
   renderPriorityBasisCard();
   renderPriorityQuadGrid();
-  // Only create/redraw the Chart.js canvas if its tab is actually visible right
-  // now — building a chart while its container is display:none gives Chart.js
-  // a zero-width canvas to measure, and it can end up permanently blank even
-  // after a later resize(). If the tab isn't open yet, the tab-click handler
-  // (elsewhere in this script) creates it fresh the moment it becomes visible.
-  const panelEl = document.getElementById('panel-priority');
-  if(panelEl && panelEl.classList.contains('active')) renderPriorityChart();
+  renderPriorityChart();
   State.activePriorityQuad = null;
   renderPriorityTable();
   $('badgePriority').textContent = State.priority.quadCounts.p1;
@@ -2123,13 +2144,10 @@ document.querySelectorAll('.tab').forEach(t => {
     document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
     t.classList.add('active');
     $('panel-'+t.dataset.panel).classList.add('active');
-    // The Priority Matrix chart is only ever created here, lazily, the moment
-    // its tab is actually visible (never eagerly while hidden) — Chart.js
-    // measures a display:none canvas as zero-width and can end up permanently
-    // blank even after a later resize(), so we always build it fresh instead.
-    if(t.dataset.panel === 'priority' && State.priority){
-      setTimeout(() => renderPriorityChart(), 0);
-    }
+    // The remaining charts here are real Chart.js canvases (Overview tab) —
+    // those can still end up wrongly sized if created while hidden, so give
+    // them a resize nudge once their tab becomes visible. The Priority Matrix
+    // scatter plot is plain SVG now and needs no such workaround.
     if(t.dataset.panel === 'overview'){
       setTimeout(() => Object.values(State.charts).forEach(c => { try{ c.resize(); }catch(e){} }), 0);
     }

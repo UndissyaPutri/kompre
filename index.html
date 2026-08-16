@@ -102,7 +102,7 @@ body{
 .slot-badge.req{background:#fde9e5;color:var(--danger)}
 .slot-badge.opt{background:var(--accent-soft);color:var(--brand-dark)}
 .slot-desc{font-size:11.5px;color:var(--text-muted);margin-bottom:10px;line-height:1.5}
-.slot-status{font-size:12px;padding:8px 10px;border-radius:6px;background:var(--surface-alt);color:var(--text-muted);display:flex;align-items:center;gap:6px}
+.slot-status{font-size:12px;padding:8px 10px;border-radius:6px;background:var(--surface-alt);color:var(--text-muted);display:block;word-wrap:break-word;overflow-wrap:break-word;line-height:1.5}
 .slot-status.ok{background:#e5f6ef;color:var(--success);font-weight:600}
 .slot-status.err{background:#fdeceb;color:var(--danger);font-weight:600}
 .slot-input{display:none}
@@ -253,6 +253,7 @@ table.data-table tbody tr:nth-child(even) td{background:var(--surface-alt)}
 table.data-table tr:hover td{background:var(--accent-soft)}
 table.data-table tr.expanded td{background:var(--accent-soft)}
 table.data-table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.data-table .ctr{text-align:center}
 .row-toggle{
   background:none;border:none;cursor:pointer;color:var(--brand);
   font-size:14px;padding:0;width:22px;height:22px;
@@ -326,6 +327,9 @@ table.data-table .num{text-align:right;font-variant-numeric:tabular-nums;white-s
 .opp-card.disabled{opacity:.45}
 
 .opp-detail-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-top:6px}
+.opp-entry-list{display:flex;flex-direction:column;gap:10px}
+.opp-entry{border:1px solid var(--border);border-left:4px solid var(--brand);border-radius:var(--radius-sm);padding:12px 14px;background:var(--surface-alt)}
+.opp-entry-head{font-weight:700;font-size:13.5px;color:var(--text);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .opp-detail-empty{padding:24px;text-align:center;color:var(--text-muted);font-style:italic}
 .rec-note{
   font-size:12px;color:var(--brand-dark);background:var(--accent-soft);border-left:3px solid var(--brand);
@@ -536,15 +540,13 @@ table.data-table .num{text-align:right;font-variant-numeric:tabular-nums;white-s
                 <tr>
                   <th style="width:30px"></th>
                   <th class="sortable" data-sort="nama">Nama Nasabah</th>
-                  <th class="sortable" data-sort="cif">CIF</th>
-                  <th class="sortable" data-sort="uker">Unit Kerja</th>
                   <th class="sortable num" data-sort="worstKol">Kol</th>
                   <th class="sortable num" data-sort="totalPlafon">Plafon</th>
                   <th class="sortable num" data-sort="totalBakiDebet">Baki Debet</th>
                   <th class="sortable num" data-sort="totalFunding">Total Funding</th>
-                  <th class="sortable num" data-sort="fundingCoverage">Funding Coverage</th>
+                  <th class="sortable num" data-sort="fundingCoverage" title="Coverage: seberapa besar funding (Tabungan + Giro + Deposito) BRI menutupi Outstanding (baki debet) pinjaman nasabah.">Coverage ℹ️</th>
                   <th>Produk Dimiliki</th>
-                  <th class="sortable" data-sort="oppCount" title="Jenis &amp; jumlah peluang bisnis yang terdeteksi otomatis. Arahkan kursor ke setiap ikon untuk detail, atau buka tab Peluang Bisnis untuk daftar lengkap dan rekomendasinya.">Peluang ℹ️</th>
+                  <th class="sortable" data-sort="oppCount" title="Jenis &amp; jumlah peluang bisnis yang terdeteksi otomatis. Arahkan kursor ke setiap badge untuk detail, atau buka tab Peluang Bisnis untuk daftar lengkap dan rekomendasinya.">Peluang ℹ️</th>
                 </tr>
               </thead>
               <tbody id="custBody"></tbody>
@@ -1087,7 +1089,7 @@ function applyGlobalFilter(){
 /* Pre-selects the filter to a specific branch on first load so the dashboard
    opens already scoped to the user's own unit kerja, instead of "Semua".
    Falls back silently (stays on "Semua") if no match is found in the data. */
-function applyDefaultRegionSelection(kanwilHint, kancaHint){
+function applyDefaultRegionSelection(kanwilHint, kancaHint, ukerHint){
   const kanwilOpt = [...$('gfKanwil').options].find(o => o.value && o.value.toLowerCase().includes(kanwilHint.toLowerCase()));
   if(kanwilOpt){
     $('gfKanwil').value = kanwilOpt.value;
@@ -1097,6 +1099,10 @@ function applyDefaultRegionSelection(kanwilHint, kancaHint){
   if(kancaOpt){
     $('gfKanca').value = kancaOpt.value;
     refreshUkerOptions();
+  }
+  if(ukerHint){
+    const ukerOpt = [...$('gfUker').options].find(o => o.value && o.value.toLowerCase().includes(ukerHint.toLowerCase()));
+    if(ukerOpt) $('gfUker').value = ukerOpt.value;
   }
 }
 
@@ -1185,7 +1191,7 @@ function renderCustTable(){
   const body = $('custBody');
   $('custCounter').textContent = `${State.filteredCust.length} dari ${State.customers.size} nasabah`;
   if(!State.filteredCust.length){
-    body.innerHTML = '<tr><td colspan="11" class="empty">Tidak ada nasabah yang cocok dengan filter.</td></tr>';
+    body.innerHTML = '<tr><td colspan="9" class="empty">Tidak ada nasabah yang cocok dengan filter.</td></tr>';
     return;
   }
   const rows = [];
@@ -1195,8 +1201,6 @@ function renderCustTable(){
       <tr class="${isExpanded?'expanded':''}" data-cif="${escapeHtml(c.cif)}">
         <td><button class="row-toggle ${isExpanded?'open':''}" onclick="toggleCustRow('${escapeHtml(c.cif)}')">▶</button></td>
         <td><strong>${escapeHtml(c.nama)}</strong></td>
-        <td style="font-family:monospace">${escapeHtml(c.cif)}</td>
-        <td>${escapeHtml(c.uker)}</td>
         <td class="num"><span class="badge-pill k-${c.worstKol}">Kol ${c.worstKol}</span></td>
         <td class="num">${fmtRupiah(c.totalPlafon)}</td>
         <td class="num">${fmtRupiah(c.totalBakiDebet)}</td>
@@ -1207,7 +1211,7 @@ function renderCustTable(){
       </tr>
     `);
     if(isExpanded){
-      rows.push(`<tr class="detail-row" data-detail-for="${escapeHtml(c.cif)}"><td colspan="11">${renderCustomerDetail(c)}</td></tr>`);
+      rows.push(`<tr class="detail-row" data-detail-for="${escapeHtml(c.cif)}"><td colspan="9">${renderCustomerDetail(c)}</td></tr>`);
     }
   });
   body.innerHTML = rows.join('');
@@ -1225,33 +1229,33 @@ window.toggleCustRow = function(cif){
 function renderCustomerDetail(c){
   const loansRows = c.loans.map(l => `
     <tr>
-      <td>${escapeHtml(l.noRekening)}</td>
-      <td>${escapeHtml(l.description||l.lnType)}</td>
-      <td><span class="badge-pill k-${l._kol}">${l._kol} - ${KOL_LABEL[l._kol]||''}</span></td>
+      <td class="ctr">${escapeHtml(l.noRekening)}</td>
+      <td class="ctr">${escapeHtml(l.description||l.lnType)}</td>
+      <td class="ctr"><span class="badge-pill k-${l._kol}">${l._kol} - ${KOL_LABEL[l._kol]||''}</span></td>
       <td class="num">${fmtRupiah(l._plafon)}</td>
       <td class="num">${fmtRupiah(l._baki)}</td>
       <td class="num">${fmtRupiah(l._tunggakan)}</td>
-      <td>${escapeHtml(l.rate)}%</td>
-      <td>${escapeHtml(l.tglJatuhTempo)}</td>
-      <td>${escapeHtml(cleanPn(l.pnPengelola))}</td>
+      <td class="ctr">${escapeHtml(l.rate)}%</td>
+      <td class="ctr">${escapeHtml(l.tglJatuhTempo)}</td>
+      <td class="ctr">${escapeHtml(cleanPn(l.pnPengelola))}</td>
     </tr>
   `).join('');
 
   const tabunganRows = c.tabungan.map(t => `
-    <tr><td>${escapeHtml(t.accountNumber)}</td><td>${escapeHtml(t.prodCode)}</td><td class="num">${fmtRupiah(t._balance)}</td><td>${escapeHtml(t.openDt)}</td><td>${escapeHtml(cleanPn(t.pnPengelola))}</td></tr>
+    <tr><td class="ctr">${escapeHtml(t.accountNumber)}</td><td class="ctr">${escapeHtml(t.prodCode)}</td><td class="num">${fmtRupiah(t._balance)}</td><td class="ctr">${escapeHtml(t.openDt)}</td><td class="ctr">${escapeHtml(cleanPn(t.pnPengelola))}</td></tr>
   `).join('') || '<tr><td colspan="5" class="empty">Belum ada rekening tabungan.</td></tr>';
 
   const giroRows = c.giro.map(t => `
-    <tr><td>${escapeHtml(t.accountNumber)}</td><td>${escapeHtml(t.productCode)}</td><td class="num">${fmtRupiah(t._balance)}</td><td>${escapeHtml(t.openDate)}</td><td>${escapeHtml(cleanPn(t.pnPengelola))}</td></tr>
+    <tr><td class="ctr">${escapeHtml(t.accountNumber)}</td><td class="ctr">${escapeHtml(t.productCode)}</td><td class="num">${fmtRupiah(t._balance)}</td><td class="ctr">${escapeHtml(t.openDate)}</td><td class="ctr">${escapeHtml(cleanPn(t.pnPengelola))}</td></tr>
   `).join('') || '<tr><td colspan="5" class="empty">Belum ada rekening giro.</td></tr>';
 
   const depositoRows = c.deposito.map(t => `
-    <tr><td>${escapeHtml(t.acctno)}</td><td class="num">${fmtRupiah(t._principal)}</td><td>${escapeHtml(t.intRate)}%</td><td>${escapeHtml(t.matDt)}</td><td>${escapeHtml(cleanPn(t.pnRmDana))}</td><td>${t._matchType==='name-fuzzy' ? '<span class="badge-pill k-3">nama mirip - cek manual</span>' : '<span class="badge-pill prod-yes">nama sama</span>'}</td></tr>
+    <tr><td class="ctr">${escapeHtml(t.acctno)}</td><td class="num">${fmtRupiah(t._principal)}</td><td class="ctr">${escapeHtml(t.intRate)}%</td><td class="ctr">${escapeHtml(t.matDt)}</td><td class="ctr">${escapeHtml(cleanPn(t.pnRmDana))}</td><td class="ctr">${t._matchType==='name-fuzzy' ? '<span class="badge-pill k-3">nama mirip - cek manual</span>' : '<span class="badge-pill prod-yes">nama sama</span>'}</td></tr>
   `).join('') || '<tr><td colspan="6" class="empty">Belum ada rekening deposito.</td></tr>';
 
   const merchantRows = [
-    ...c.edc.map(m => `<tr><td>EDC</td><td>${escapeHtml(m.namaMerchant)}</td><td>${escapeHtml(m.mid)}</td><td class="num">${fmtNum(m._trx)}</td><td class="num">${fmtRupiah(m._volume)}</td><td>${escapeHtml(combinePn(m.pnUser, m.namaUser))}</td></tr>`),
-    ...c.qris.map(m => `<tr><td>QRIS</td><td>${escapeHtml(m.namaMerchant)}</td><td>-</td><td class="num">${fmtNum(m._trx)}</td><td class="num">${fmtRupiah(m._volume)}</td><td>${escapeHtml(combinePn(m.pn, m.pnNama))}</td></tr>`),
+    ...c.edc.map(m => `<tr><td class="ctr">EDC</td><td class="ctr">${escapeHtml(m.namaMerchant)}</td><td class="ctr">${escapeHtml(m.mid)}</td><td class="num">${fmtNum(m._trx)}</td><td class="num">${fmtRupiah(m._volume)}</td><td class="ctr">${escapeHtml(combinePn(m.pnUser, m.namaUser))}</td></tr>`),
+    ...c.qris.map(m => `<tr><td class="ctr">QRIS</td><td class="ctr">${escapeHtml(m.namaMerchant)}</td><td class="ctr">-</td><td class="num">${fmtNum(m._trx)}</td><td class="num">${fmtRupiah(m._volume)}</td><td class="ctr">${escapeHtml(combinePn(m.pn, m.pnNama))}</td></tr>`),
   ].join('') || '<tr><td colspan="6" class="empty">Belum ada merchant EDC/QRIS.</td></tr>';
 
   const oppHtml = c.opportunities.length ? c.opportunities.map(k => `<div class="rec-note"><strong>${OPP_DEFS[k].label}:</strong> ${OPP_DEFS[k].rec}</div>`).join('') 
@@ -1270,7 +1274,7 @@ function renderCustomerDetail(c){
             <div><div class="f-label">Unit Kerja</div><div class="f-value">${escapeHtml(c.uker)}</div></div>
             <div><div class="f-label">Kolektibilitas Terburuk</div><div class="f-value">${c.worstKol} - ${KOL_LABEL[c.worstKol]}</div></div>
             <div><div class="f-label">RM Pengelola Kredit</div><div class="f-value">${escapeHtml(cleanPn(c.loans[0]?.pnPengelola))}</div></div>
-            <div><div class="f-label">Funding Coverage</div><div class="f-value">${c.fundingCoverage!=null ? (c.fundingCoverage*100).toFixed(1)+'%' : '-'}</div></div>
+            <div><div class="f-label" title="Coverage: seberapa besar funding (Tabungan + Giro + Deposito) BRI menutupi Outstanding (baki debet) pinjaman nasabah.">Coverage ℹ️</div><div class="f-value">${c.fundingCoverage!=null ? (c.fundingCoverage*100).toFixed(1)+'%' : '-'}</div></div>
           </div>
           <div class="product-pills">
             <span class="pill ${c.loans.length?'on':''}">Pinjaman ${c.loans.length}</span>
@@ -1292,19 +1296,19 @@ function renderCustomerDetail(c){
       ${oppHtml}
 
       <div class="detail-section-title">Fasilitas Kredit (${c.loans.length})</div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th>No Rekening</th><th>Jenis</th><th>Kol</th><th class="num">Plafon</th><th class="num">Baki Debet</th><th class="num">Tunggakan</th><th>Rate</th><th>Jatuh Tempo</th><th>RM Pengelola Kredit</th></tr></thead><tbody>${loansRows}</tbody></table></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th class="ctr">No Rekening</th><th class="ctr">Jenis</th><th class="ctr">Kol</th><th class="num">Plafon</th><th class="num">Baki Debet</th><th class="num">Tunggakan</th><th class="ctr">Rate</th><th class="ctr">Jatuh Tempo</th><th class="ctr">RM Pengelola Kredit</th></tr></thead><tbody>${loansRows}</tbody></table></div>
 
       <div class="detail-section-title">Tabungan (${c.tabungan.length})</div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th>No Rekening</th><th>Produk</th><th class="num">Saldo</th><th>Tgl Buka</th><th>RM Pengelola FT</th></tr></thead><tbody>${tabunganRows}</tbody></table></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th class="ctr">No Rekening</th><th class="ctr">Produk</th><th class="num">Saldo</th><th class="ctr">Tgl Buka</th><th class="ctr">RM Pengelola FT</th></tr></thead><tbody>${tabunganRows}</tbody></table></div>
 
       <div class="detail-section-title">Giro (${c.giro.length})</div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th>No Rekening</th><th>Produk</th><th class="num">Saldo</th><th>Tgl Buka</th><th>RM Pengelola FT</th></tr></thead><tbody>${giroRows}</tbody></table></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th class="ctr">No Rekening</th><th class="ctr">Produk</th><th class="num">Saldo</th><th class="ctr">Tgl Buka</th><th class="ctr">RM Pengelola FT</th></tr></thead><tbody>${giroRows}</tbody></table></div>
 
       <div class="detail-section-title">Deposito (${c.deposito.length}) — dicocokkan berdasarkan nama (tanpa CIF)</div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th>No Rekening</th><th class="num">Nominal</th><th>Rate</th><th>Jatuh Tempo</th><th>RM Pengelola FT</th><th>Kualitas Match</th></tr></thead><tbody>${depositoRows}</tbody></table></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th class="ctr">No Rekening</th><th class="num">Nominal</th><th class="ctr">Rate</th><th class="ctr">Jatuh Tempo</th><th class="ctr">RM Pengelola FT</th><th class="ctr">Kualitas Match</th></tr></thead><tbody>${depositoRows}</tbody></table></div>
 
       <div class="detail-section-title">Merchant EDC / QRIS (${c.edc.length + c.qris.length})</div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th>Tipe</th><th>Nama Merchant</th><th>MID</th><th class="num">Transaksi</th><th class="num">Volume</th><th>RM Pengelola FT</th></tr></thead><tbody>${merchantRows}</tbody></table></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th class="ctr">Tipe</th><th class="ctr">Nama Merchant</th><th class="ctr">MID</th><th class="num">Transaksi</th><th class="num">Volume</th><th class="ctr">RM Pengelola FT</th></tr></thead><tbody>${merchantRows}</tbody></table></div>
     </div>
   `;
 }
@@ -1340,22 +1344,24 @@ function selectOpp(k){
   const q = ($('oppSearch').value || '').toLowerCase().trim();
   let list = State.oppCategories[k];
   if(q) list = list.filter(c => `${c.nama} ${c.cif}`.toLowerCase().includes(q));
-  const rows = list.slice().sort((a,b)=>b.totalBakiDebet-a.totalBakiDebet).map(c => `
-    <tr>
-      <td><strong>${escapeHtml(c.nama)}</strong></td>
-      <td style="font-family:monospace">${escapeHtml(c.cif)}</td>
-      <td>${escapeHtml(c.uker)}</td>
-      <td class="num"><span class="badge-pill k-${c.worstKol}">Kol ${c.worstKol}</span></td>
-      <td class="num">${fmtRupiah(c.totalBakiDebet)}</td>
-      <td class="num">${fmtRupiah(c.totalFunding)}</td>
-      <td>${escapeHtml(cleanPn(c.loans[0]?.pnPengelola))}</td>
-    </tr>
+  const entries = list.slice().sort((a,b)=>b.totalBakiDebet-a.totalBakiDebet).map(c => `
+    <div class="opp-entry">
+      <div class="opp-entry-head">
+        <span>${escapeHtml(c.nama)}</span>
+        <span class="badge-pill k-${c.worstKol}">Kol ${c.worstKol}</span>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-field"><span class="lbl">CIF</span><span class="val">${escapeHtml(c.cif)}</span></div>
+        <div class="detail-field"><span class="lbl">Unit Kerja</span><span class="val">${escapeHtml(c.uker)}</span></div>
+        <div class="detail-field"><span class="lbl">Baki Debet</span><span class="val">${fmtRupiah(c.totalBakiDebet)}</span></div>
+        <div class="detail-field"><span class="lbl">Total Funding</span><span class="val">${fmtRupiah(c.totalFunding)}</span></div>
+        <div class="detail-field"><span class="lbl">RM Pengelola Kredit</span><span class="val">${escapeHtml(cleanPn(c.loans[0]?.pnPengelola))}</span></div>
+      </div>
+    </div>
   `).join('');
   $('oppDetail').innerHTML = `
     <div class="rec-note"><strong>${def.label}</strong> — ${def.rec}</div>
-    <div class="table-wrap"><table class="data-table"><thead><tr>
-      <th>Nama Nasabah</th><th>CIF</th><th>Unit Kerja</th><th class="num">Kol</th><th class="num">Baki Debet</th><th class="num">Total Funding</th><th>RM Pengelola Kredit</th>
-    </tr></thead><tbody>${rows || '<tr><td colspan="7" class="empty">Tidak ada nasabah yang cocok.</td></tr>'}</tbody></table></div>
+    <div class="opp-entry-list">${entries || '<div class="opp-detail-empty">Tidak ada nasabah yang cocok.</div>'}</div>
   `;
 }
 window.selectOpp = selectOpp;
@@ -1575,7 +1581,7 @@ function generateDummyCustomers(){
 function loadDummyDashboard(){
   State.customers = new Map(generateDummyCustomers().map(c => [c.cif, c]));
   populateGlobalFilterOptions();
-  applyDefaultRegionSelection('Semarang', 'Brigjen Sudiarto');
+  applyDefaultRegionSelection('Semarang', 'Brigjen Sudiarto', 'Brigjen Sudiarto');
   applyGlobalFilter();
   $('uploadSection').style.display = 'none';
   $('dashboard').classList.add('show');
@@ -1599,7 +1605,7 @@ async function processAll(){
     await new Promise(r=>setTimeout(r,80));
 
     populateGlobalFilterOptions();
-    applyDefaultRegionSelection('Semarang', 'Brigjen Sudiarto');
+    applyDefaultRegionSelection('Semarang', 'Brigjen Sudiarto', 'Brigjen Sudiarto');
     applyGlobalFilter();
 
     setP(100, 'Selesai!');

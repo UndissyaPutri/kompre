@@ -281,9 +281,6 @@ table.data-table .ctr{text-align:center}
 .ws-select{width:100%;padding:5px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit;background:var(--surface)}
 .ws-del{background:none;border:none;cursor:pointer;color:var(--danger);font-size:15px;padding:2px 6px}
 .ws-del:hover{background:#fdeceb;border-radius:4px}
-.ws-bisnis-toggle{padding:3px 10px;border-radius:12px;font-size:10.5px;font-weight:700;border:1px solid transparent;cursor:pointer}
-.ws-bisnis-toggle.on{background:#e4f6ee;color:#0a7d58;border-color:#a8ddc4}
-.ws-bisnis-toggle.off{background:#eef1f4;color:var(--text-soft);border-color:var(--border)}
 .ws-cust-row{padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--surface)}
 .ws-cust-row:hover{border-color:var(--brand);background:var(--accent-soft)}
 .row-toggle{
@@ -747,30 +744,30 @@ table.data-table td.empty{text-align:center}
           <div id="wsWorkspace" style="display:none">
             <div class="customer-hero" id="wsCustHero" style="margin-bottom:18px"></div>
 
-            <div class="detail-section-title">1. Rekening Koran → Saldo Akhir (Aset) &amp; Transaksi</div>
+            <div class="detail-section-title">Saldo Akhir &amp; Transaksi</div>
             <p class="upload-hint" style="margin-bottom:8px">Isi nama bank, lalu upload file rekening koran-nya sekaligus (misal 6 bulan terakhir, urutkan nama file dari bulan terlama ke terbaru). Sistem otomatis ambil <strong>Saldo Akhir</strong> dari file bulan paling baru, dan ekstrak semua transaksinya untuk analisis Buyer/Supplier di bawah. BRI biasanya sudah otomatis terisi dari data Customer 360 — upload di sini untuk menambah rekening di bank lain, atau koreksi saldo BRI dengan data rekening koran yang lebih presisi.</p>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
-              <input class="input" id="wsBankNameInput" placeholder="Nama Bank (mis. BRI)" value="BRI" style="max-width:200px">
-              <button class="btn btn-primary btn-sm" id="btnPickKoranFile">📁 Upload Rekening Koran (bisa multi-bulan)</button>
+              <input class="input" id="wsBankNameInput" placeholder="Nama Bank (mis. BRI)" style="max-width:200px">
+              <button class="btn btn-light" style="background:var(--brand);color:#fff" id="btnPickKoranFile">📁 Upload Rekening Koran (bisa multi-bulan)</button>
               <input type="file" id="koranFileInput" accept=".xlsx" multiple style="display:none">
               <span class="upload-hint" id="koranFileStatus"></span>
             </div>
             <div class="table-wrap" style="margin-bottom:10px">
-              <table class="data-table"><thead><tr><th>Bank</th><th>Jenis</th><th class="num">Saldo Akhir</th><th class="ctr">Bisnis?</th><th class="ctr">Hapus</th></tr></thead>
+              <table class="data-table"><thead><tr><th>Bank</th><th>Jenis</th><th class="num">Saldo Akhir</th><th class="ctr">Hapus</th></tr></thead>
                 <tbody id="wsRekeningBody"></tbody>
               </table>
             </div>
             <button class="btn btn-outline btn-sm" id="btnAddRekeningRow" style="margin-bottom:18px">+ Baris Manual</button>
 
-            <div class="detail-section-title">2. SLIK / Credit Profiling → Fasilitas Aktif (Liabilities)</div>
-            <p class="upload-hint" style="margin-bottom:8px">Upload file "Credit Profiling" — sistem otomatis ambil fasilitas dengan Kondisi "Fasilitas Aktif" dan Tujuan Modal Kerja/Investasi/Garansi (Konsumsi &amp; Lainnya dilewati otomatis).</p>
+            <div class="detail-section-title">2. SLIK Fasilitas Aktif</div>
+            <p class="upload-hint" style="margin-bottom:8px">Upload file "Credit Profiling" — sistem otomatis ambil fasilitas dengan Kondisi "Fasilitas Aktif" dan Tujuan Modal Kerja/Investasi/Garansi (Konsumsi &amp; Lainnya bisa ditambahkan secara manual).</p>
             <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
-              <button class="btn btn-primary btn-sm" id="btnPickSlikFile">📁 Upload File SLIK / Credit Profiling</button>
+              <button class="btn btn-light" style="background:var(--brand);color:#fff" id="btnPickSlikFile">📁 Upload File SLIK / Credit Profiling</button>
               <input type="file" id="slikFileInput" accept=".xlsx" style="display:none">
               <span class="upload-hint" id="slikFileStatus"></span>
             </div>
             <div class="table-wrap" style="margin-bottom:10px">
-              <table class="data-table"><thead><tr><th>Bank</th><th>Jenis Fasilitas</th><th>Atas Nama</th><th class="ctr">Kolektibilitas</th><th class="num">Plafon</th><th class="num">Baki Debet</th><th class="ctr">Bisnis?</th><th class="ctr">Hapus</th></tr></thead>
+              <table class="data-table"><thead><tr><th>Bank</th><th>Jenis Fasilitas</th><th>Atas Nama</th><th class="ctr">Kolektibilitas</th><th class="num">Plafon</th><th class="num">Baki Debet</th><th class="ctr">Hapus</th></tr></thead>
                 <tbody id="wsFasilitasBody"></tbody>
               </table>
             </div>
@@ -778,25 +775,37 @@ table.data-table td.empty{text-align:center}
 
             <div class="detail-section-title">Dashboard Wallet Share</div>
             <div class="customer-hero" id="wsDashHero" style="margin-bottom:16px"></div>
-            <div class="charts-grid" style="margin-bottom:18px">
+            <div class="charts-grid" style="margin-bottom:8px">
               <div class="chart-card">
-                <h3>Aset — BRI vs Non-BRI</h3>
+                <h3>Aset per Bank</h3>
                 <div class="chart-canvas-wrap" style="height:220px"><canvas id="chartWsAset"></canvas></div>
+                <div class="table-wrap" style="margin-top:10px"><table class="data-table"><thead><tr><th>Bank</th><th class="num">Saldo</th></tr></thead><tbody id="wsAsetTableBody"></tbody></table></div>
               </div>
               <div class="chart-card">
-                <h3>Liabilities — BRI vs Non-BRI</h3>
+                <h3>Liabilities per Bank</h3>
                 <div class="chart-canvas-wrap" style="height:220px"><canvas id="chartWsLiab"></canvas></div>
+                <div class="table-wrap" style="margin-top:10px"><table class="data-table"><thead><tr><th>Bank</th><th class="num">Baki Debet</th></tr></thead><tbody id="wsLiabTableBody"></tbody></table></div>
               </div>
             </div>
-            <div class="stats-grid" id="wsRataRataStats" style="margin-bottom:18px"></div>
+            <div class="stats-grid" id="wsRataRataStats" style="margin-bottom:8px"></div>
+            <div class="charts-grid" style="margin-bottom:18px">
+              <div class="chart-card">
+                <h3>Rata-rata Penyaluran/Bulan per Bank</h3>
+                <div class="chart-canvas-wrap" style="height:200px"><canvas id="chartWsPenyaluran"></canvas></div>
+              </div>
+              <div class="chart-card">
+                <h3>Rata-rata Pembelian/Bulan per Bank</h3>
+                <div class="chart-canvas-wrap" style="height:200px"><canvas id="chartWsPembelian"></canvas></div>
+              </div>
+            </div>
 
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:18px">
               <div>
-                <div class="detail-section-title">🟢 Buyer / Customer — Top 5 Transaksi Kredit</div>
+                <div class="detail-section-title" style="background:var(--success)">🟢 Buyer / Customer — Top 5 Transaksi Kredit</div>
                 <div class="opp-grid" id="wsBuyerCards" style="grid-template-columns:1fr"></div>
               </div>
               <div>
-                <div class="detail-section-title">🔵 Supplier — Top 5 Transaksi Debit</div>
+                <div class="detail-section-title" style="background:var(--warning)">🟡 Supplier — Top 5 Transaksi Debit</div>
                 <div class="opp-grid" id="wsSupplierCards" style="grid-template-columns:1fr"></div>
               </div>
             </div>
@@ -805,14 +814,14 @@ table.data-table td.empty{text-align:center}
             <div class="filter-bar no-print" style="grid-template-columns:2fr 1fr 1fr auto;margin-bottom:12px">
               <div class="search-wrap">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input class="input" id="wsTxSearch" placeholder="Cari nama lawan transaksi...">
+                <input class="input" id="wsTxSearch" placeholder="Cari deskripsi transaksi...">
               </div>
               <select class="select" id="wsTxMonthFilter"><option value="">Semua Bulan</option></select>
               <select class="select" id="wsTxBankFilter"><option value="">Semua Bank</option></select>
               <button class="btn btn-outline btn-sm" id="btnClearTxFilter">Reset</button>
             </div>
             <div class="table-wrap">
-              <table class="data-table"><thead><tr><th>Tanggal</th><th>Nama Lawan Transaksi</th><th class="ctr">Tipe</th><th class="num">Nominal</th><th>Bank</th><th class="ctr">Hapus</th></tr></thead>
+              <table class="data-table"><thead><tr><th>Tanggal</th><th>Deskripsi</th><th class="ctr">Tipe</th><th class="num">Nominal</th><th>Bank</th><th class="ctr">Hapus</th></tr></thead>
                 <tbody id="wsTransaksiBody"></tbody>
               </table>
             </div>
@@ -823,6 +832,16 @@ table.data-table td.empty{text-align:center}
     </div>
 
   </section>
+
+  <div id="wsTxModal" style="display:none;position:fixed;inset:0;background:rgba(11,37,64,.55);z-index:2000;align-items:center;justify-content:center;padding:20px">
+    <div style="background:#fff;border-radius:var(--radius);max-width:600px;width:100%;max-height:80vh;overflow:auto;padding:22px;box-shadow:var(--shadow-lg)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h3 id="wsTxModalTitle" style="font-size:15px;color:var(--brand-darker)"></h3>
+        <button onclick="closeWsTxModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-soft);line-height:1">✕</button>
+      </div>
+      <div id="wsTxModalBody"></div>
+    </div>
+  </div>
 </main>
 
 <script>
@@ -2002,7 +2021,7 @@ $('btnResetPriorityOverride').addEventListener('click', () => {
    still be recast: edited inline, or toggled out of the "Bisnis" calculation.
    ================================================================= */
 let wsIdCounter = 1;
-State.wallet = {cif:null, rekening:[], fasilitas:[], transaksi:[], monthsCount:0};
+State.wallet = {cif:null, rekening:[], fasilitas:[], transaksi:[]};
 
 function splitPastedLine(line){
   if(line.includes('\t')) return line.split('\t').map(s=>s.trim());
@@ -2037,15 +2056,18 @@ function renderWsCustList(){
 
 function selectWalletCustomer(cif){
   if(State.wallet.cif !== cif){
-    State.wallet = {cif, rekening:[], fasilitas:[], transaksi:[], monthsCount:0};
+    State.wallet = {cif, rekening:[], fasilitas:[], transaksi:[]};
     // Seed with the customer's known BRI facilities/accounts automatically so
     // the RM doesn't have to retype what the system already knows.
     const c = State.customers.get(cif);
     if(c){
-      c.tabungan.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:'BRI', jenis:'Tabungan', saldo:t._balance, bisnis:true}));
-      c.giro.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:'BRI', jenis:'Giro', saldo:t._balance, bisnis:true}));
-      c.deposito.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:'BRI', jenis:'Deposito', saldo:t._principal, bisnis:true}));
-      c.loans.forEach(l => State.wallet.fasilitas.push({id:wsIdCounter++, bank:'BRI', jenis: /investasi/i.test(l.description||'') ? 'Investasi' : 'Modal Kerja', plafon:l._plafon, baki:l._baki, bisnis:true}));
+      c.tabungan.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:'BRI', jenis:'Tabungan', saldo:t._balance}));
+      c.giro.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:'BRI', jenis:'Giro', saldo:t._balance}));
+      c.deposito.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:'BRI', jenis:'Deposito', saldo:t._principal}));
+      c.loans.forEach(l => State.wallet.fasilitas.push({
+        id:wsIdCounter++, bank:'BRI', jenis: /investasi/i.test(l.description||'') ? 'Investasi' : 'Modal Kerja',
+        atasNama:c.nama, kolek:`${l._kol} - ${KOL_LABEL[l._kol]||''}`, plafon:l._plafon, baki:l._baki,
+      }));
     }
   }
   $('wsCustSearch').value = '';
@@ -2084,13 +2106,12 @@ function renderWsRekeningTable(){
         ${['Giro','Tabungan','Deposito','QRIS','EDC'].map(j=>`<option value="${j}" ${r.jenis===j?'selected':''}>${j}</option>`).join('')}
       </select></td>
       <td class="num"><input class="ws-input" type="number" value="${r.saldo}" style="text-align:right" onchange="updateWsRow('rekening',${r.id},'saldo',this.value)"></td>
-      <td class="ctr"><button class="ws-bisnis-toggle ${r.bisnis?'on':'off'}" onclick="toggleWsBisnis('rekening',${r.id})">${r.bisnis?'Bisnis':'Non-Bisnis'}</button></td>
       <td class="ctr"><button class="ws-del" onclick="deleteWsRow('rekening',${r.id})">✕</button></td>
     </tr>
-  `).join('') || '<tr><td colspan="5" class="empty">Belum ada data rekening.</td></tr>';
+  `).join('') || '<tr><td colspan="4" class="empty">Belum ada data rekening.</td></tr>';
 }
 function addWsRekeningRow(){
-  State.wallet.rekening.push({id:wsIdCounter++, bank:'BRI', jenis:'Tabungan', saldo:0, bisnis:true});
+  State.wallet.rekening.push({id:wsIdCounter++, bank:'BRI', jenis:'Tabungan', saldo:0});
   renderWsRekeningTable(); renderWsDashboard();
 }
 
@@ -2134,6 +2155,9 @@ function parseKoranCounterparty(desc, selfNorm){
   if(m) return cleanStr(m[1]);
   m = desc.match(/ATM\s*\d*\s+(.+?)\s+TO\s+/i);
   if(m) return cleanStr(m[1]);
+  // "...InhouseTrf DARI <name> Transf..." / "...InhouseTrf KE <name> Transf..."
+  m = desc.match(/InhouseTrf\s+(?:DARI|KE)\s+(.+?)\s+Transf/i);
+  if(m) return cleanStr(m[1]);
   return desc.length > 60 ? desc.slice(0,60) : desc;
 }
 
@@ -2157,8 +2181,8 @@ async function handleRekeningKoranUpload(bankNameRaw, fileList){
       if(!rows.length){ showToast(`${file.name}: format tidak dikenali, dilewati.`, 'warning'); continue; }
       rows.forEach(r => {
         const nama = parseKoranCounterparty(r.desc, selfNorm);
-        if(r.credit > 0){ State.wallet.transaksi.push({id:wsIdCounter++, tanggal:r.tanggal, nama, tipe:'Kredit', nominal:r.credit, bank:bankName}); totalTx++; }
-        if(r.debit > 0){ State.wallet.transaksi.push({id:wsIdCounter++, tanggal:r.tanggal, nama, tipe:'Debit', nominal:r.debit, bank:bankName}); totalTx++; }
+        if(r.credit > 0){ State.wallet.transaksi.push({id:wsIdCounter++, tanggal:r.tanggal, nama, descFull:r.desc, tipe:'Kredit', nominal:r.credit, bank:bankName}); totalTx++; }
+        if(r.debit > 0){ State.wallet.transaksi.push({id:wsIdCounter++, tanggal:r.tanggal, nama, descFull:r.desc, tipe:'Debit', nominal:r.debit, bank:bankName}); totalTx++; }
       });
       lastSaldo = rows[rows.length-1].saldo;
       filesOk++;
@@ -2170,9 +2194,9 @@ async function handleRekeningKoranUpload(bankNameRaw, fileList){
     // Upsert: replace the existing Giro/Tabungan row for this bank if present, else add a new one.
     const existing = State.wallet.rekening.find(r => cleanStr(r.bank).toUpperCase() === bankName.toUpperCase());
     if(existing) existing.saldo = lastSaldo;
-    else State.wallet.rekening.push({id:wsIdCounter++, bank:bankName, jenis:'Giro', saldo:lastSaldo, bisnis:true});
+    else State.wallet.rekening.push({id:wsIdCounter++, bank:bankName, jenis:'Giro', saldo:lastSaldo});
   }
-  State.wallet.monthsCount += filesOk;
+  $('wsBankNameInput').value = '';
   renderWsRekeningTable(); renderWsTransaksiTable(); renderWsDashboard();
   $('koranFileStatus').textContent = `✓ ${filesOk} file dibaca, ${totalTx} transaksi ditambahkan, saldo akhir ${bankName}: ${lastSaldo!=null?fmtRupiah(lastSaldo):'-'}.`;
   showToast(`${bankName}: ${filesOk} file diproses, ${totalTx} transaksi ditambahkan.`, 'success');
@@ -2190,13 +2214,12 @@ function renderWsFasilitasTable(){
       <td class="ctr"><input class="ws-input" value="${escapeHtml(r.kolek||'')}" style="text-align:center" onchange="updateWsRow('fasilitas',${r.id},'kolek',this.value)"></td>
       <td class="num"><input class="ws-input" type="number" value="${r.plafon}" style="text-align:right" onchange="updateWsRow('fasilitas',${r.id},'plafon',this.value)"></td>
       <td class="num"><input class="ws-input" type="number" value="${r.baki}" style="text-align:right" onchange="updateWsRow('fasilitas',${r.id},'baki',this.value)"></td>
-      <td class="ctr"><button class="ws-bisnis-toggle ${r.bisnis?'on':'off'}" onclick="toggleWsBisnis('fasilitas',${r.id})">${r.bisnis?'Bisnis':'Non-Bisnis'}</button></td>
       <td class="ctr"><button class="ws-del" onclick="deleteWsRow('fasilitas',${r.id})">✕</button></td>
     </tr>
-  `).join('') || '<tr><td colspan="8" class="empty">Belum ada data fasilitas.</td></tr>';
+  `).join('') || '<tr><td colspan="7" class="empty">Belum ada data fasilitas.</td></tr>';
 }
 function addWsFasilitasRow(){
-  State.wallet.fasilitas.push({id:wsIdCounter++, bank:'BRI', jenis:'Modal Kerja', atasNama:'', kolek:'1 - Lancar', plafon:0, baki:0, bisnis:true});
+  State.wallet.fasilitas.push({id:wsIdCounter++, bank:'BRI', jenis:'Modal Kerja', atasNama:'', kolek:'1 - Lancar', plafon:0, baki:0});
   renderWsFasilitasTable(); renderWsDashboard();
 }
 
@@ -2250,10 +2273,25 @@ async function handleSlikFile(file){
       $('slikFileStatus').textContent = '✗ Tidak ditemukan fasilitas aktif Modal Kerja/Investasi/Garansi di file ini.';
       return;
     }
-    rows.forEach(r => State.wallet.fasilitas.push({id:wsIdCounter++, bank:r.bank, jenis:r.jenis, atasNama:r.atasNama, kolek:r.kolek, plafon:r.plafon, baki:r.baki, bisnis:true}));
+    // If a facility already sitting in the table (e.g. the BRI one auto-seeded
+    // from Customer 360) has the exact same Plafon & Baki Debet as one coming
+    // from SLIK, treat them as the same facility and let the SLIK row's data
+    // (bank/jenis/atasNama/kolek) win, instead of adding a duplicate.
+    let replaced = 0, added = 0;
+    rows.forEach(r => {
+      const dupIdx = State.wallet.fasilitas.findIndex(f => f.plafon === r.plafon && f.baki === r.baki);
+      if(dupIdx >= 0){
+        const id = State.wallet.fasilitas[dupIdx].id;
+        State.wallet.fasilitas[dupIdx] = {id, bank:r.bank, jenis:r.jenis, atasNama:r.atasNama, kolek:r.kolek, plafon:r.plafon, baki:r.baki};
+        replaced++;
+      } else {
+        State.wallet.fasilitas.push({id:wsIdCounter++, bank:r.bank, jenis:r.jenis, atasNama:r.atasNama, kolek:r.kolek, plafon:r.plafon, baki:r.baki});
+        added++;
+      }
+    });
     renderWsFasilitasTable(); renderWsDashboard();
-    $('slikFileStatus').textContent = `✓ ${rows.length} fasilitas aktif ditambahkan dari ${file.name}.`;
-    showToast(`${rows.length} fasilitas SLIK ditambahkan.`, 'success');
+    $('slikFileStatus').textContent = `✓ ${added} fasilitas baru ditambahkan, ${replaced} baris di-update dari ${file.name}.`;
+    showToast(`${added} fasilitas baru, ${replaced} di-update dari SLIK.`, 'success');
   } catch(err){
     $('slikFileStatus').textContent = `✗ Gagal membaca file: ${err.message}`;
     showToast('Gagal membaca file SLIK: ' + err.message, 'error');
@@ -2281,14 +2319,14 @@ function renderWsTransaksiTable(){
   const q = ($('wsTxSearch').value || '').toLowerCase().trim();
   const monthF = $('wsTxMonthFilter').value, bankF = $('wsTxBankFilter').value;
   let rows = State.wallet.transaksi;
-  if(q) rows = rows.filter(r => r.nama.toLowerCase().includes(q));
+  if(q) rows = rows.filter(r => (r.descFull || r.nama || '').toLowerCase().includes(q));
   if(monthF) rows = rows.filter(r => extractMonthKey(r.tanggal) === monthF);
   if(bankF) rows = rows.filter(r => cleanStr(r.bank) === bankF);
   $('wsTransaksiBody').innerHTML = rows.map(r => `
     <tr>
       <td><input class="ws-input" value="${escapeHtml(r.tanggal)}" onchange="updateWsRow('transaksi',${r.id},'tanggal',this.value)"></td>
-      <td><input class="ws-input" value="${escapeHtml(r.nama)}" onchange="updateWsRow('transaksi',${r.id},'nama',this.value)"></td>
-      <td class="ctr"><select class="ws-select" onchange="updateWsRow('transaksi',${r.id},'tipe',this.value)">
+      <td><input class="ws-input" value="${escapeHtml(r.descFull!=null ? r.descFull : r.nama)}" onchange="updateWsRow('transaksi',${r.id},'descFull',this.value)"></td>
+      <td class="ctr"><select class="ws-select" style="background:${r.tipe==='Kredit'?'#e4f6ee':'#fdf3dd'};color:${r.tipe==='Kredit'?'#0a7d58':'#a17408'};font-weight:700" onchange="updateWsRow('transaksi',${r.id},'tipe',this.value)">
         ${['Kredit','Debit'].map(j=>`<option value="${j}" ${r.tipe===j?'selected':''}>${j}</option>`).join('')}
       </select></td>
       <td class="num"><input class="ws-input" type="number" value="${r.nominal}" style="text-align:right" onchange="updateWsRow('transaksi',${r.id},'nominal',this.value)"></td>
@@ -2298,7 +2336,7 @@ function renderWsTransaksiTable(){
   `).join('') || '<tr><td colspan="6" class="empty">Belum ada data transaksi yang cocok dengan filter.</td></tr>';
 }
 function addWsTransaksiRow(){
-  State.wallet.transaksi.push({id:wsIdCounter++, tanggal:'', nama:'', tipe:'Kredit', nominal:0, bank:'BRI'});
+  State.wallet.transaksi.push({id:wsIdCounter++, tanggal:'', nama:'', descFull:'', tipe:'Kredit', nominal:0, bank:'BRI'});
   renderWsTransaksiTable(); renderWsDashboard();
 }
 
@@ -2310,14 +2348,6 @@ function updateWsRow(section, id, field, value){
   renderWsDashboard();
 }
 window.updateWsRow = updateWsRow;
-function toggleWsBisnis(section, id){
-  const row = State.wallet[section].find(r => r.id === id);
-  if(!row) return;
-  row.bisnis = !row.bisnis;
-  if(section==='rekening') renderWsRekeningTable(); else renderWsFasilitasTable();
-  renderWsDashboard();
-}
-window.toggleWsBisnis = toggleWsBisnis;
 function deleteWsRow(section, id){
   State.wallet[section] = State.wallet[section].filter(r => r.id !== id);
   if(section==='rekening') renderWsRekeningTable();
@@ -2371,8 +2401,8 @@ function computeMonthsCovered(){
 function renderWsDashboard(){
   const c = State.customers.get(State.wallet.cif);
   if(!c) return;
-  const rek = State.wallet.rekening.filter(r => r.bisnis);
-  const fas = State.wallet.fasilitas.filter(r => r.bisnis);
+  const rek = State.wallet.rekening;
+  const fas = State.wallet.fasilitas;
 
   const asetChart = buildBankChartData(rek, 'saldo');
   const liabChart = buildBankChartData(fas, 'baki');
@@ -2402,15 +2432,24 @@ function renderWsDashboard(){
     data:{labels:liabChart.labels, datasets:[{data:liabChart.data, backgroundColor:liabChart.colors, borderWidth:2, borderColor:'#fff'}]},
     options:donutOpts
   });
+  // Small tables under each donut so every bank's number is readable even
+  // when its slice is too thin in the chart to see (e.g. a tiny facility).
+  $('wsAsetTableBody').innerHTML = asetChart.labels.map((l,i) => `<tr><td>${escapeHtml(l)}</td><td class="num">${fmtRupiah(asetChart.data[i])}</td></tr>`).join('') || '<tr><td colspan="2" class="empty">Belum ada data.</td></tr>';
+  $('wsLiabTableBody').innerHTML = liabChart.labels.map((l,i) => `<tr><td>${escapeHtml(l)}</td><td class="num">${fmtRupiah(liabChart.data[i])}</td></tr>`).join('') || '<tr><td colspan="2" class="empty">Belum ada data.</td></tr>';
 
-  // Buyer/Supplier: group transaksi by counterparty name, excluding self-transfers
+  // Buyer/Supplier: group transaksi by counterparty name, excluding self-transfers.
+  // Self-transfer check is substring-based (not just prefix) so descriptions like
+  // "OB PINJ KE SIMP BUANA PAKSA" or "SETORAN PINJAMAN BUANA PAKSA" — where the
+  // customer's own name is embedded inside a longer internal-transfer description
+  // — are correctly excluded too, not just an exact/prefix name match.
   const selfName = normName(c.nama);
+  const isSelfTransfer = n => n && (n.includes(selfName) || selfName.includes(n) || namesLikelyMatch(n, selfName));
   const grouped = {Kredit:{}, Debit:{}};
   let totalKredit = 0, totalDebit = 0;
   State.wallet.transaksi.forEach(t => {
     if(t.tipe==='Kredit') totalKredit += t.nominal; else totalDebit += t.nominal;
     const n = normName(t.nama);
-    if(!n || namesLikelyMatch(n, selfName)) return;
+    if(!n || isSelfTransfer(n)) return;
     const bucket = grouped[t.tipe] || grouped.Debit;
     if(!bucket[t.nama]) bucket[t.nama] = {count:0, total:0};
     bucket[t.nama].count++;
@@ -2418,6 +2457,8 @@ function renderWsDashboard(){
   });
   const topN = obj => Object.entries(obj).sort((a,b)=>b[1].total-a[1].total).slice(0,5);
   const buyers = topN(grouped.Kredit), suppliers = topN(grouped.Debit);
+  State.wallet._buyersCache = buyers;
+  State.wallet._suppliersCache = suppliers;
   const monthsSeen = computeMonthsCovered();
   const monthsDivisor = Math.max(monthsSeen, 1);
 
@@ -2429,22 +2470,83 @@ function renderWsDashboard(){
     <div class="stat-card ${cd.cls}"><div class="stat-label">${cd.label}</div><div class="stat-value">${cd.value}</div><div class="stat-sub">${cd.sub}</div></div>
   `).join('');
 
-  $('wsBuyerCards').innerHTML = buyers.map(([nama,d]) => `
-    <div class="opp-card" style="cursor:default;border-left:4px solid var(--success)">
+  // Per-bank breakdown of the same two averages — Penyaluran (credit) chart in
+  // green shades, Pembelian (debit) chart in yellow shades, one bar per bank.
+  const GREEN_SHADES = ['#0a9d6e','#4dbf99','#7fd4b8','#2eb37f','#a3e2c9'];
+  const YELLOW_SHADES = ['#d69a12','#e8b74a','#f0cc7a','#c98a10','#f5dca0'];
+  function buildBankAvgData(tipe, shades){
+    const map = new Map();
+    State.wallet.transaksi.filter(t=>t.tipe===tipe).forEach(t => {
+      const b = cleanStr(t.bank) || 'Lainnya';
+      map.set(b, (map.get(b)||0) + t.nominal);
+    });
+    const entries = [...map.entries()].sort((a,b) => {
+      if(isBRI(a[0]) && !isBRI(b[0])) return -1;
+      if(!isBRI(a[0]) && isBRI(b[0])) return 1;
+      return b[1]-a[1];
+    });
+    return {
+      labels: entries.map(e=>e[0]),
+      data: entries.map(e => e[1]/monthsDivisor),
+      colors: entries.map((e,i) => shades[i % shades.length]),
+    };
+  }
+  const penyaluranData = buildBankAvgData('Kredit', GREEN_SHADES);
+  const pembelianData = buildBankAvgData('Debit', YELLOW_SHADES);
+  const barOpts = {responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>fmtRupiah(ctx.parsed.x)}}}, scales:{x:{ticks:{callback:v=>'Rp '+(v/1e6).toFixed(0)+'jt'}}}};
+  if(State.charts.wsPenyaluran){ try{ State.charts.wsPenyaluran.destroy(); }catch(e){} }
+  State.charts.wsPenyaluran = new Chart($('chartWsPenyaluran'), {
+    type:'bar',
+    data:{labels:penyaluranData.labels, datasets:[{data:penyaluranData.data, backgroundColor:penyaluranData.colors, borderRadius:4}]},
+    options:barOpts
+  });
+  if(State.charts.wsPembelian){ try{ State.charts.wsPembelian.destroy(); }catch(e){} }
+  State.charts.wsPembelian = new Chart($('chartWsPembelian'), {
+    type:'bar',
+    data:{labels:pembelianData.labels, datasets:[{data:pembelianData.data, backgroundColor:pembelianData.colors, borderRadius:4}]},
+    options:barOpts
+  });
+
+  $('wsBuyerCards').innerHTML = buyers.map(([nama,d], idx) => `
+    <div class="opp-card" style="cursor:pointer;border-left:4px solid var(--success)" onclick="openWsTxModal('buyer',${idx})">
       <div class="opp-label" style="font-size:13px">${escapeHtml(nama)}</div>
       <div class="opp-count" style="font-size:19px">${fmtRupiah(d.total)}</div>
-      <div class="opp-sub">${d.count} transaksi</div>
+      <div class="opp-sub">${d.count} transaksi · klik untuk detail</div>
     </div>
   `).join('') || '<div class="opp-detail-empty">Belum ada transaksi kredit yang teridentifikasi sebagai buyer.</div>';
 
-  $('wsSupplierCards').innerHTML = suppliers.map(([nama,d]) => `
-    <div class="opp-card" style="cursor:default;border-left:4px solid var(--brand)">
+  $('wsSupplierCards').innerHTML = suppliers.map(([nama,d], idx) => `
+    <div class="opp-card" style="cursor:pointer;border-left:4px solid var(--warning)" onclick="openWsTxModal('supplier',${idx})">
       <div class="opp-label" style="font-size:13px">${escapeHtml(nama)}</div>
       <div class="opp-count" style="font-size:19px">${fmtRupiah(d.total)}</div>
-      <div class="opp-sub">${d.count} transaksi</div>
+      <div class="opp-sub">${d.count} transaksi · klik untuk detail</div>
     </div>
   `).join('') || '<div class="opp-detail-empty">Belum ada transaksi debit yang teridentifikasi sebagai supplier.</div>';
 }
+
+/* Popup showing every underlying transaction (date + full original description
+   + amount) behind one Buyer/Supplier card, since the card itself only shows
+   the extracted short name and a total. */
+function openWsTxModal(kind, idx){
+  const cache = kind==='buyer' ? State.wallet._buyersCache : State.wallet._suppliersCache;
+  if(!cache || !cache[idx]) return;
+  const [nama] = cache[idx];
+  const tipe = kind==='buyer' ? 'Kredit' : 'Debit';
+  const items = State.wallet.transaksi.filter(t => t.tipe===tipe && t.nama===nama)
+    .slice().sort((a,b) => (a.tanggal||'').localeCompare(b.tanggal||''));
+  $('wsTxModalTitle').textContent = `${nama} — Detail Transaksi ${tipe}`;
+  $('wsTxModalBody').innerHTML = items.map(t => `
+    <div style="padding:9px 0;border-bottom:1px dashed var(--border)">
+      <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:2px">${escapeHtml(t.tanggal)} · ${escapeHtml(t.bank||'-')}</div>
+      <div style="font-size:12.5px;color:var(--text);margin-bottom:2px">${escapeHtml(t.descFull || t.nama)}</div>
+      <div style="font-size:13px;font-weight:700;color:${tipe==='Kredit'?'var(--success)':'var(--warning)'}">${fmtRupiah(t.nominal)}</div>
+    </div>
+  `).join('') || '<div class="empty">Tidak ada detail transaksi.</div>';
+  $('wsTxModal').style.display = 'flex';
+}
+function closeWsTxModal(){ $('wsTxModal').style.display = 'none'; }
+window.openWsTxModal = openWsTxModal;
+window.closeWsTxModal = closeWsTxModal;
 
 $('wsCustSearch').addEventListener('input', renderWsCustList);
 $('wsTxSearch').addEventListener('input', renderWsTransaksiTable);

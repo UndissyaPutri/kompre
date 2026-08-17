@@ -282,6 +282,19 @@ table.data-table .ctr{text-align:center}
 .ws-del{background:none;border:none;cursor:pointer;color:var(--danger);font-size:15px;padding:2px 6px}
 .ws-del:hover{background:#fdeceb;border-radius:4px}
 .ws-cust-row{padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--surface)}
+/* Standalone mode-toggle buttons — deliberately NOT using the shared .tab
+   class, since that class is also matched by the app's generic tab-switching
+   click handler (which assumes a data-panel attribute); reusing it here
+   caused a null-reference crash on click. Default ("Existing") starts dark
+   blue/active to invite an immediate search; switching to "New to Bank"
+   flips which one is dark. */
+.ws-mode-btn{
+  padding:9px 18px;border-radius:6px;border:1px solid var(--border);
+  background:var(--surface-alt);color:var(--text-muted);font-weight:600;font-size:13px;
+  cursor:pointer;font-family:inherit;transition:background .15s,color .15s,border-color .15s;
+}
+.ws-mode-btn:hover{border-color:var(--brand-mid)}
+.ws-mode-btn.active{background:var(--brand-dark);color:#fff;border-color:var(--brand-dark)}
 .ws-cust-row:hover{border-color:var(--brand);background:var(--accent-soft)}
 .row-toggle{
   background:none;border:none;cursor:pointer;color:var(--brand);
@@ -736,8 +749,8 @@ table.data-table td.empty{text-align:center}
           </div>
 
           <div style="display:flex;gap:8px;margin-bottom:14px" class="no-print">
-            <button class="tab active" id="wsModeExisting" style="flex:0 0 auto;padding:9px 18px" onclick="setWsMode('existing')">🔍 Nasabah Existing</button>
-            <button class="tab" id="wsModeNew" style="flex:0 0 auto;padding:9px 18px" onclick="setWsMode('new')">🆕 Nasabah Baru (New to Bank)</button>
+            <button class="ws-mode-btn active" id="wsModeExisting" onclick="setWsMode('existing')">🔍 Nasabah Existing</button>
+            <button class="ws-mode-btn" id="wsModeNew" onclick="setWsMode('new')">🆕 Nasabah Baru (New to Bank)</button>
           </div>
 
           <div id="wsExistingSearch">
@@ -749,11 +762,13 @@ table.data-table td.empty{text-align:center}
           </div>
 
           <div id="wsNewProspectForm" style="display:none;margin-bottom:18px">
-            <div class="info-banner">Untuk calon nasabah yang belum punya pinjaman/rekening apapun di BRI — isi namanya, lalu langsung upload SLIK dan rekening koran mereka (bank manapun) untuk mulai analisis wallet share dari nol.</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-              <input class="input" id="wsNewProspectName" placeholder="Nama calon nasabah / perusahaan" style="max-width:320px">
-              <button class="btn btn-primary btn-sm" id="btnStartProspect">Mulai Analisis</button>
+            <div class="info-banner">Untuk calon nasabah yang belum punya pinjaman/rekening apapun di BRI — isi namanya dan pilih RM pengelolanya, lalu langsung upload SLIK dan rekening koran mereka (bank manapun) untuk mulai analisis wallet share dari nol.</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:12px">
+              <input class="input" id="wsNewProspectName" placeholder="Nama calon nasabah / perusahaan">
+              <select class="select" id="wsNewProspectRmKredit"><option value="">RM Pengelola Kredit (opsional)</option></select>
+              <select class="select" id="wsNewProspectRmFt"><option value="">RM Pengelola FT (opsional)</option></select>
             </div>
+            <button class="btn btn-primary btn-sm" id="btnStartProspect">Mulai Analisis</button>
           </div>
 
           <div id="wsWorkspace" style="display:none">
@@ -783,7 +798,7 @@ table.data-table td.empty{text-align:center}
             </div>
             <button class="btn btn-outline btn-sm" id="btnAddRekeningRow" style="margin-bottom:18px">+ Baris Manual</button>
 
-            <div class="detail-section-title">2. SLIK Fasilitas Aktif</div>
+            <div class="detail-section-title">SLIK Fasilitas Aktif</div>
             <p class="upload-hint" style="margin-bottom:8px">Upload file "Credit Profiling" — sistem otomatis ambil fasilitas dengan Kondisi "Fasilitas Aktif" dan Tujuan Modal Kerja/Investasi/Garansi (Konsumsi &amp; Lainnya bisa ditambahkan secara manual).</p>
             <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
               <button class="btn btn-light" style="background:var(--brand);color:#fff" id="btnPickSlikFile">📁 Upload File SLIK / Credit Profiling</button>
@@ -2060,6 +2075,7 @@ const WS_BANK_OPTIONS = [
   'PT Bank CIMB Niaga Tbk',
   'PT Bank Danamon Indonesia Tbk',
 ];
+const WS_BRI_NAME = WS_BANK_OPTIONS[0];
 State.wallet = {cif:null, rekening:[], fasilitas:[], transaksi:[]};
 State.wsProspects = new Map(); // "New to Bank" prospects — kept separate from
                                 // State.customers so they never leak into
@@ -2078,8 +2094,24 @@ function setWsMode(mode){
   $('wsModeNew').classList.toggle('active', mode==='new');
   $('wsExistingSearch').style.display = mode==='existing' ? 'block' : 'none';
   $('wsNewProspectForm').style.display = mode==='new' ? 'block' : 'none';
+  if(mode==='new') populateWsProspectRmOptions();
 }
 window.setWsMode = setWsMode;
+
+/* Pulls real RM names from the existing customer portfolio so a "New to
+   Bank" prospect can still be assigned a proper RM Pengelola Kredit / FT
+   from a dropdown, instead of having to type a name freehand. */
+function populateWsProspectRmOptions(){
+  const rmKreditSet = new Set(), rmFtSet = new Set();
+  State.customers.forEach(c => {
+    if(c.rmPengelola && c.rmPengelola !== '-') rmKreditSet.add(c.rmPengelola);
+    (c.rmFundingList||[]).forEach(rm => { if(rm && rm !== '-') rmFtSet.add(rm); });
+  });
+  $('wsNewProspectRmKredit').innerHTML = '<option value="">RM Pengelola Kredit (opsional)</option>' +
+    [...rmKreditSet].sort().map(rm => `<option value="${escapeHtml(rm)}">${escapeHtml(rm)}</option>`).join('');
+  $('wsNewProspectRmFt').innerHTML = '<option value="">RM Pengelola FT (opsional)</option>' +
+    [...rmFtSet].sort().map(rm => `<option value="${escapeHtml(rm)}">${escapeHtml(rm)}</option>`).join('');
+}
 
 function splitPastedLine(line){
   if(line.includes('\t')) return line.split('\t').map(s=>s.trim());
@@ -2119,11 +2151,11 @@ function selectWalletCustomer(cif){
     // the RM doesn't have to retype what the system already knows.
     const c = State.customers.get(cif);
     if(c){
-      c.tabungan.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:'BRI', jenis:'Tabungan', saldo:t._balance}));
-      c.giro.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:'BRI', jenis:'Giro', saldo:t._balance}));
-      c.deposito.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:'BRI', jenis:'Deposito', saldo:t._principal}));
+      c.tabungan.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:WS_BRI_NAME, jenis:'Tabungan', saldo:t._balance}));
+      c.giro.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:WS_BRI_NAME, jenis:'Giro', saldo:t._balance}));
+      c.deposito.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:WS_BRI_NAME, jenis:'Deposito', saldo:t._principal}));
       c.loans.forEach(l => State.wallet.fasilitas.push({
-        id:wsIdCounter++, bank:'BRI', jenis: /investasi/i.test(l.description||'') ? 'Investasi' : 'Modal Kerja',
+        id:wsIdCounter++, bank:WS_BRI_NAME, jenis: /investasi/i.test(l.description||'') ? 'Investasi' : 'Modal Kerja',
         atasNama:c.nama, kolek:`${l._kol} - ${KOL_LABEL[l._kol]||''}`, plafon:l._plafon, baki:l._baki,
       }));
     }
@@ -2136,6 +2168,7 @@ window.selectWalletCustomer = selectWalletCustomer;
 function renderWsWorkspace(){
   const c = getWalletCustomer();
   if(!c) return;
+  $('wsBankNameInput').value = WS_BRI_NAME;
   const isProspect = String(c.cif).startsWith('PROSPEK-');
   $('wsCustHero').innerHTML = `
     <div class="customer-hero-inner">
@@ -2170,7 +2203,7 @@ function renderWsRekeningTable(){
   `).join('') || '<tr><td colspan="4" class="empty">Belum ada data rekening.</td></tr>';
 }
 function addWsRekeningRow(){
-  State.wallet.rekening.push({id:wsIdCounter++, bank:'BRI', jenis:'Tabungan', saldo:0});
+  State.wallet.rekening.push({id:wsIdCounter++, bank:WS_BRI_NAME, jenis:'Tabungan', saldo:0});
   renderWsRekeningTable(); renderWsDashboard();
 }
 
@@ -2280,7 +2313,7 @@ function renderWsFasilitasTable(){
   `).join('') || '<tr><td colspan="7" class="empty">Belum ada data fasilitas.</td></tr>';
 }
 function addWsFasilitasRow(){
-  State.wallet.fasilitas.push({id:wsIdCounter++, bank:'BRI', jenis:'Modal Kerja', atasNama:'', kolek:'1 - Lancar', plafon:0, baki:0});
+  State.wallet.fasilitas.push({id:wsIdCounter++, bank:WS_BRI_NAME, jenis:'Modal Kerja', atasNama:'', kolek:'1 - Lancar', plafon:0, baki:0});
   renderWsFasilitasTable(); renderWsDashboard();
 }
 
@@ -2397,7 +2430,7 @@ function renderWsTransaksiTable(){
   `).join('') || '<tr><td colspan="6" class="empty">Belum ada data transaksi yang cocok dengan filter.</td></tr>';
 }
 function addWsTransaksiRow(){
-  State.wallet.transaksi.push({id:wsIdCounter++, tanggal:'', nama:'', descFull:'', tipe:'Kredit', nominal:0, bank:'BRI'});
+  State.wallet.transaksi.push({id:wsIdCounter++, tanggal:'', nama:'', descFull:'', tipe:'Kredit', nominal:0, bank:WS_BRI_NAME});
   renderWsTransaksiTable(); renderWsDashboard();
 }
 
@@ -2613,12 +2646,18 @@ $('wsCustSearch').addEventListener('input', renderWsCustList);
 $('btnStartProspect').addEventListener('click', () => {
   const nama = cleanStr($('wsNewProspectName').value);
   if(!nama){ showToast('Isi nama calon nasabah dulu.', 'warning'); return; }
+  const rmKredit = $('wsNewProspectRmKredit').value;
+  const rmFt = $('wsNewProspectRmFt').value;
   const cif = 'PROSPEK-' + Date.now();
   State.wsProspects.set(cif, {
     cif, nama, uker:'-', kanwil:'-', kanca:'-', totalBakiDebet:0, worstKol:1,
-    loans:[], tabungan:[], giro:[], deposito:[], edc:[], qris:[], rmFundingList:[],
+    loans: rmKredit ? [{pnPengelola:rmKredit}] : [],
+    tabungan:[], giro:[], deposito:[], edc:[], qris:[],
+    rmFundingList: rmFt ? [rmFt] : [],
   });
   $('wsNewProspectName').value = '';
+  $('wsNewProspectRmKredit').value = '';
+  $('wsNewProspectRmFt').value = '';
   selectWalletCustomer(cif);
   showToast(`Mulai analisis wallet share untuk "${nama}" (nasabah baru).`, 'success');
 });

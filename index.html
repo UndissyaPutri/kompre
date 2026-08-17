@@ -750,7 +750,7 @@ table.data-table td.empty{text-align:center}
             <div class="detail-section-title">1. Rekening Koran → Saldo Akhir (Aset) &amp; Transaksi</div>
             <p class="upload-hint" style="margin-bottom:8px">Isi nama bank, lalu upload file rekening koran-nya sekaligus (misal 6 bulan terakhir, urutkan nama file dari bulan terlama ke terbaru). Sistem otomatis ambil <strong>Saldo Akhir</strong> dari file bulan paling baru, dan ekstrak semua transaksinya untuk analisis Buyer/Supplier di bawah. BRI biasanya sudah otomatis terisi dari data Customer 360 — upload di sini untuk menambah rekening di bank lain, atau koreksi saldo BRI dengan data rekening koran yang lebih presisi.</p>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
-              <input class="input" id="wsBankNameInput" placeholder="Nama Bank (mis. BRI)" style="max-width:200px">
+              <input class="input" id="wsBankNameInput" placeholder="Nama Bank (mis. BRI)" value="BRI" style="max-width:200px">
               <button class="btn btn-primary btn-sm" id="btnPickKoranFile">📁 Upload Rekening Koran (bisa multi-bulan)</button>
               <input type="file" id="koranFileInput" accept=".xlsx" multiple style="display:none">
               <span class="upload-hint" id="koranFileStatus"></span>
@@ -770,7 +770,7 @@ table.data-table td.empty{text-align:center}
               <span class="upload-hint" id="slikFileStatus"></span>
             </div>
             <div class="table-wrap" style="margin-bottom:10px">
-              <table class="data-table"><thead><tr><th>Bank</th><th>Jenis Fasilitas</th><th class="num">Plafon</th><th class="num">Baki Debet</th><th class="ctr">Bisnis?</th><th class="ctr">Hapus</th></tr></thead>
+              <table class="data-table"><thead><tr><th>Bank</th><th>Jenis Fasilitas</th><th>Atas Nama</th><th class="ctr">Kolektibilitas</th><th class="num">Plafon</th><th class="num">Baki Debet</th><th class="ctr">Bisnis?</th><th class="ctr">Hapus</th></tr></thead>
                 <tbody id="wsFasilitasBody"></tbody>
               </table>
             </div>
@@ -802,12 +802,17 @@ table.data-table td.empty{text-align:center}
             </div>
 
             <div class="detail-section-title">Riwayat Transaksi (untuk edit/recast)</div>
-            <div class="search-wrap no-print" style="margin-bottom:12px;max-width:420px">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input class="input" id="wsTxSearch" placeholder="Cari nama lawan transaksi...">
+            <div class="filter-bar no-print" style="grid-template-columns:2fr 1fr 1fr auto;margin-bottom:12px">
+              <div class="search-wrap">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input class="input" id="wsTxSearch" placeholder="Cari nama lawan transaksi...">
+              </div>
+              <select class="select" id="wsTxMonthFilter"><option value="">Semua Bulan</option></select>
+              <select class="select" id="wsTxBankFilter"><option value="">Semua Bank</option></select>
+              <button class="btn btn-outline btn-sm" id="btnClearTxFilter">Reset</button>
             </div>
             <div class="table-wrap">
-              <table class="data-table"><thead><tr><th>Tanggal</th><th>Nama Lawan Transaksi</th><th class="ctr">Tipe</th><th class="num">Nominal</th><th class="ctr">Hapus</th></tr></thead>
+              <table class="data-table"><thead><tr><th>Tanggal</th><th>Nama Lawan Transaksi</th><th class="ctr">Tipe</th><th class="num">Nominal</th><th>Bank</th><th class="ctr">Hapus</th></tr></thead>
                 <tbody id="wsTransaksiBody"></tbody>
               </table>
             </div>
@@ -2059,6 +2064,8 @@ function renderWsWorkspace(){
         <div><div class="f-label">CIF</div><div class="f-value">${escapeHtml(c.cif)}</div></div>
         <div><div class="f-label">Unit Kerja</div><div class="f-value">${escapeHtml(c.uker)}</div></div>
         <div><div class="f-label">Baki Debet BRI</div><div class="f-value">${fmtRupiah(c.totalBakiDebet)}</div></div>
+        <div><div class="f-label">RM Pengelola Kredit</div><div class="f-value">${escapeHtml(cleanPn(c.loans[0]?.pnPengelola))}</div></div>
+        <div><div class="f-label">RM Pengelola FT</div><div class="f-value">${escapeHtml(c.rmFundingList && c.rmFundingList.length ? c.rmFundingList.join(', ') : '-')}</div></div>
       </div>
     </div>
   `;
@@ -2150,8 +2157,8 @@ async function handleRekeningKoranUpload(bankNameRaw, fileList){
       if(!rows.length){ showToast(`${file.name}: format tidak dikenali, dilewati.`, 'warning'); continue; }
       rows.forEach(r => {
         const nama = parseKoranCounterparty(r.desc, selfNorm);
-        if(r.credit > 0){ State.wallet.transaksi.push({id:wsIdCounter++, tanggal:r.tanggal, nama, tipe:'Kredit', nominal:r.credit}); totalTx++; }
-        if(r.debit > 0){ State.wallet.transaksi.push({id:wsIdCounter++, tanggal:r.tanggal, nama, tipe:'Debit', nominal:r.debit}); totalTx++; }
+        if(r.credit > 0){ State.wallet.transaksi.push({id:wsIdCounter++, tanggal:r.tanggal, nama, tipe:'Kredit', nominal:r.credit, bank:bankName}); totalTx++; }
+        if(r.debit > 0){ State.wallet.transaksi.push({id:wsIdCounter++, tanggal:r.tanggal, nama, tipe:'Debit', nominal:r.debit, bank:bankName}); totalTx++; }
       });
       lastSaldo = rows[rows.length-1].saldo;
       filesOk++;
@@ -2177,17 +2184,19 @@ function renderWsFasilitasTable(){
     <tr>
       <td><input class="ws-input" value="${escapeHtml(r.bank)}" onchange="updateWsRow('fasilitas',${r.id},'bank',this.value)"></td>
       <td><select class="ws-select" onchange="updateWsRow('fasilitas',${r.id},'jenis',this.value)">
-        ${['Modal Kerja','Investasi','Garansi'].map(j=>`<option value="${j}" ${r.jenis===j?'selected':''}>${j}</option>`).join('')}
+        ${['Modal Kerja','Investasi','Garansi','Konsumtif'].map(j=>`<option value="${j}" ${r.jenis===j?'selected':''}>${j}</option>`).join('')}
       </select></td>
+      <td><input class="ws-input" value="${escapeHtml(r.atasNama||'')}" onchange="updateWsRow('fasilitas',${r.id},'atasNama',this.value)"></td>
+      <td class="ctr"><input class="ws-input" value="${escapeHtml(r.kolek||'')}" style="text-align:center" onchange="updateWsRow('fasilitas',${r.id},'kolek',this.value)"></td>
       <td class="num"><input class="ws-input" type="number" value="${r.plafon}" style="text-align:right" onchange="updateWsRow('fasilitas',${r.id},'plafon',this.value)"></td>
       <td class="num"><input class="ws-input" type="number" value="${r.baki}" style="text-align:right" onchange="updateWsRow('fasilitas',${r.id},'baki',this.value)"></td>
       <td class="ctr"><button class="ws-bisnis-toggle ${r.bisnis?'on':'off'}" onclick="toggleWsBisnis('fasilitas',${r.id})">${r.bisnis?'Bisnis':'Non-Bisnis'}</button></td>
       <td class="ctr"><button class="ws-del" onclick="deleteWsRow('fasilitas',${r.id})">✕</button></td>
     </tr>
-  `).join('') || '<tr><td colspan="6" class="empty">Belum ada data fasilitas.</td></tr>';
+  `).join('') || '<tr><td colspan="8" class="empty">Belum ada data fasilitas.</td></tr>';
 }
 function addWsFasilitasRow(){
-  State.wallet.fasilitas.push({id:wsIdCounter++, bank:'BRI', jenis:'Modal Kerja', plafon:0, baki:0, bisnis:true});
+  State.wallet.fasilitas.push({id:wsIdCounter++, bank:'BRI', jenis:'Modal Kerja', atasNama:'', kolek:'1 - Lancar', plafon:0, baki:0, bisnis:true});
   renderWsFasilitasTable(); renderWsDashboard();
 }
 
@@ -2207,7 +2216,8 @@ function readSlikExcel(file){
         const header = aoa[hdrIdx].map(v => cleanStr(v).toUpperCase());
         const iBank = header.indexOf('BANK'), iKategori = header.indexOf('KATEGORI'),
               iTujuan = header.indexOf('TUJUAN/JENIS PENGGUNAAN'), iPlafon = header.indexOf('PLAFON'),
-              iBaki = header.indexOf('BAKI DEBET/NOMINAL'), iKondisi = header.indexOf('KONDISI');
+              iBaki = header.indexOf('BAKI DEBET/NOMINAL'), iKondisi = header.indexOf('KONDISI'),
+              iNamaDebitur = header.indexOf('NAMA DEBITUR'), iKualitas = header.indexOf('KUALITAS');
         const out = [];
         for(let r = hdrIdx+1; r < aoa.length; r++){
           const row = aoa[r];
@@ -2219,7 +2229,11 @@ function readSlikExcel(file){
           else if(/modal kerja/i.test(tujuan)) jenis = 'Modal Kerja';
           else if(/investasi/i.test(tujuan)) jenis = 'Investasi';
           if(!jenis) continue;
-          out.push({bank:cleanStr(row[iBank]), jenis, plafon:parseNum(row[iPlafon]), baki:parseNum(row[iBaki])});
+          out.push({
+            bank:cleanStr(row[iBank]), jenis, plafon:parseNum(row[iPlafon]), baki:parseNum(row[iBaki]),
+            atasNama: iNamaDebitur>=0 ? cleanStr(row[iNamaDebitur]) : '',
+            kolek: iKualitas>=0 ? cleanStr(row[iKualitas]) : '',
+          });
         }
         resolve(out);
       } catch(err){ reject(err); }
@@ -2236,7 +2250,7 @@ async function handleSlikFile(file){
       $('slikFileStatus').textContent = '✗ Tidak ditemukan fasilitas aktif Modal Kerja/Investasi/Garansi di file ini.';
       return;
     }
-    rows.forEach(r => State.wallet.fasilitas.push({id:wsIdCounter++, bank:r.bank, jenis:r.jenis, plafon:r.plafon, baki:r.baki, bisnis:true}));
+    rows.forEach(r => State.wallet.fasilitas.push({id:wsIdCounter++, bank:r.bank, jenis:r.jenis, atasNama:r.atasNama, kolek:r.kolek, plafon:r.plafon, baki:r.baki, bisnis:true}));
     renderWsFasilitasTable(); renderWsDashboard();
     $('slikFileStatus').textContent = `✓ ${rows.length} fasilitas aktif ditambahkan dari ${file.name}.`;
     showToast(`${rows.length} fasilitas SLIK ditambahkan.`, 'success');
@@ -2247,10 +2261,29 @@ async function handleSlikFile(file){
 }
 
 /* ---- Transaksi table (edit/recast) ---- */
+function refreshWsTxFilterOptions(){
+  const curMonth = $('wsTxMonthFilter').value, curBank = $('wsTxBankFilter').value;
+  const months = [...new Set(State.wallet.transaksi.map(r=>extractMonthKey(r.tanggal)).filter(Boolean))]
+    .sort((a,b) => {
+      const pa=a.split('/'), pb=b.split('/');
+      const ya=pa[1]?parseInt(pa[1]):0, yb=pb[1]?parseInt(pb[1]):0;
+      if(ya!==yb) return ya-yb;
+      return parseInt(pa[0])-parseInt(pb[0]);
+    });
+  $('wsTxMonthFilter').innerHTML = '<option value="">Semua Bulan</option>' +
+    months.map(m=>`<option value="${m}" ${m===curMonth?'selected':''}>${monthKeyLabel(m)}</option>`).join('');
+  const banks = [...new Set(State.wallet.transaksi.map(r=>cleanStr(r.bank)).filter(Boolean))].sort();
+  $('wsTxBankFilter').innerHTML = '<option value="">Semua Bank</option>' +
+    banks.map(b=>`<option value="${escapeHtml(b)}" ${b===curBank?'selected':''}>${escapeHtml(b)}</option>`).join('');
+}
 function renderWsTransaksiTable(){
-  const q = ($('wsTxSearch') && $('wsTxSearch').value || '').toLowerCase().trim();
+  refreshWsTxFilterOptions();
+  const q = ($('wsTxSearch').value || '').toLowerCase().trim();
+  const monthF = $('wsTxMonthFilter').value, bankF = $('wsTxBankFilter').value;
   let rows = State.wallet.transaksi;
   if(q) rows = rows.filter(r => r.nama.toLowerCase().includes(q));
+  if(monthF) rows = rows.filter(r => extractMonthKey(r.tanggal) === monthF);
+  if(bankF) rows = rows.filter(r => cleanStr(r.bank) === bankF);
   $('wsTransaksiBody').innerHTML = rows.map(r => `
     <tr>
       <td><input class="ws-input" value="${escapeHtml(r.tanggal)}" onchange="updateWsRow('transaksi',${r.id},'tanggal',this.value)"></td>
@@ -2259,12 +2292,13 @@ function renderWsTransaksiTable(){
         ${['Kredit','Debit'].map(j=>`<option value="${j}" ${r.tipe===j?'selected':''}>${j}</option>`).join('')}
       </select></td>
       <td class="num"><input class="ws-input" type="number" value="${r.nominal}" style="text-align:right" onchange="updateWsRow('transaksi',${r.id},'nominal',this.value)"></td>
+      <td><input class="ws-input" value="${escapeHtml(r.bank||'')}" onchange="updateWsRow('transaksi',${r.id},'bank',this.value)"></td>
       <td class="ctr"><button class="ws-del" onclick="deleteWsRow('transaksi',${r.id})">✕</button></td>
     </tr>
-  `).join('') || '<tr><td colspan="5" class="empty">Belum ada data transaksi.</td></tr>';
+  `).join('') || '<tr><td colspan="6" class="empty">Belum ada data transaksi yang cocok dengan filter.</td></tr>';
 }
 function addWsTransaksiRow(){
-  State.wallet.transaksi.push({id:wsIdCounter++, tanggal:'', nama:'', tipe:'Kredit', nominal:0});
+  State.wallet.transaksi.push({id:wsIdCounter++, tanggal:'', nama:'', tipe:'Kredit', nominal:0, bank:'BRI'});
   renderWsTransaksiTable(); renderWsDashboard();
 }
 
@@ -2294,28 +2328,63 @@ function deleteWsRow(section, id){
 window.deleteWsRow = deleteWsRow;
 
 /* ---- Dashboard: Aset/Liabilities donuts, rata-rata/bulan, Buyer & Supplier cards ---- */
+/* Groups rekening/fasilitas rows by bank and returns Chart.js-ready
+   labels/data/colors — BRI always shown as one vivid primary-blue slice,
+   every other bank gets its own slice (never lumped into "Non-BRI") using
+   muted shades from the same blue family so it still reads as one palette. */
+const WS_MUTED_BLUES = ['#7fa8d9','#a9c6e8','#5a8bc4','#c3d9ee','#3f6fa8','#8fb4dd','#2e5a8c','#b8d4ef'];
+function buildBankChartData(rows, valueField){
+  const map = new Map();
+  rows.forEach(r => {
+    const b = cleanStr(r.bank) || 'Lainnya';
+    map.set(b, (map.get(b)||0) + r[valueField]);
+  });
+  const entries = [...map.entries()].sort((a,b) => {
+    if(isBRI(a[0]) && !isBRI(b[0])) return -1;
+    if(!isBRI(a[0]) && isBRI(b[0])) return 1;
+    return b[1]-a[1];
+  });
+  let mutedIdx = 0;
+  const colors = entries.map(([bank]) => isBRI(bank) ? '#0856c3' : WS_MUTED_BLUES[mutedIdx++ % WS_MUTED_BLUES.length]);
+  return {labels:entries.map(e=>e[0]), data:entries.map(e=>e[1]), colors, briTotal: entries.filter(e=>isBRI(e[0])).reduce((s,e)=>s+e[1],0), grandTotal: entries.reduce((s,e)=>s+e[1],0)};
+}
+
+/* Divisor for the "rata-rata/bulan" metrics — derived from the actual
+   distinct months present in the transaction dates themselves (not just how
+   many files were uploaded), so it stays correct even if a file covers more
+   or less than exactly one month. */
+function extractMonthKey(tanggal){
+  const parts = cleanStr(tanggal).split('/');
+  if(parts.length < 2) return null;
+  return parts.length >= 3 ? `${parts[1]}/${parts[2]}` : parts[1];
+}
+const WS_MONTH_NAMES = {1:'Jan',2:'Feb',3:'Mar',4:'Apr',5:'Mei',6:'Jun',7:'Jul',8:'Agt',9:'Sep',10:'Okt',11:'Nov',12:'Des'};
+function monthKeyLabel(key){
+  const parts = key.split('/');
+  const label = WS_MONTH_NAMES[parseInt(parts[0],10)] || key;
+  return parts.length>1 ? `${label} ${parts[1]}` : label;
+}
+function computeMonthsCovered(){
+  return new Set(State.wallet.transaksi.map(t => extractMonthKey(t.tanggal)).filter(Boolean)).size;
+}
+
 function renderWsDashboard(){
   const c = State.customers.get(State.wallet.cif);
   if(!c) return;
   const rek = State.wallet.rekening.filter(r => r.bisnis);
   const fas = State.wallet.fasilitas.filter(r => r.bisnis);
 
-  const asetBRI = rek.filter(r=>isBRI(r.bank)).reduce((s,r)=>s+r.saldo,0);
-  const asetNonBRI = rek.filter(r=>!isBRI(r.bank)).reduce((s,r)=>s+r.saldo,0);
-  const asetTotal = asetBRI + asetNonBRI;
-
-  const liabBRI = fas.filter(r=>isBRI(r.bank)).reduce((s,r)=>s+r.baki,0);
-  const liabNonBRI = fas.filter(r=>!isBRI(r.bank)).reduce((s,r)=>s+r.baki,0);
-  const liabTotal = liabBRI + liabNonBRI;
+  const asetChart = buildBankChartData(rek, 'saldo');
+  const liabChart = buildBankChartData(fas, 'baki');
 
   $('wsDashHero').innerHTML = `
     <div class="customer-hero-inner">
       <span class="label-tag">${escapeHtml(c.nama)}</span>
       <div class="customer-hero-grid">
-        <div><div class="f-label">Aset</div><div class="f-value">${fmtRupiah(asetTotal)}</div></div>
-        <div><div class="f-label">Liabilities</div><div class="f-value">${fmtRupiah(liabTotal)}</div></div>
-        <div><div class="f-label">Aset BRI</div><div class="f-value">${fmtRupiah(asetBRI)} (${asetTotal>0?(asetBRI/asetTotal*100).toFixed(1):0}%)</div></div>
-        <div><div class="f-label">Liabilities BRI</div><div class="f-value">${fmtRupiah(liabBRI)} (${liabTotal>0?(liabBRI/liabTotal*100).toFixed(1):0}%)</div></div>
+        <div><div class="f-label">Aset</div><div class="f-value">${fmtRupiah(asetChart.grandTotal)}</div></div>
+        <div><div class="f-label">Liabilities</div><div class="f-value">${fmtRupiah(liabChart.grandTotal)}</div></div>
+        <div><div class="f-label">Aset BRI</div><div class="f-value">${fmtRupiah(asetChart.briTotal)} (${asetChart.grandTotal>0?(asetChart.briTotal/asetChart.grandTotal*100).toFixed(1):0}%)</div></div>
+        <div><div class="f-label">Liabilities BRI</div><div class="f-value">${fmtRupiah(liabChart.briTotal)} (${liabChart.grandTotal>0?(liabChart.briTotal/liabChart.grandTotal*100).toFixed(1):0}%)</div></div>
       </div>
     </div>
   `;
@@ -2324,13 +2393,13 @@ function renderWsDashboard(){
   if(State.charts.wsAset){ try{ State.charts.wsAset.destroy(); }catch(e){} }
   State.charts.wsAset = new Chart($('chartWsAset'), {
     type:'doughnut',
-    data:{labels:['BRI','Non-BRI'], datasets:[{data:[asetBRI, asetNonBRI], backgroundColor:['#0856c3','#d69a12'], borderWidth:2, borderColor:'#fff'}]},
+    data:{labels:asetChart.labels, datasets:[{data:asetChart.data, backgroundColor:asetChart.colors, borderWidth:2, borderColor:'#fff'}]},
     options:donutOpts
   });
   if(State.charts.wsLiab){ try{ State.charts.wsLiab.destroy(); }catch(e){} }
   State.charts.wsLiab = new Chart($('chartWsLiab'), {
     type:'doughnut',
-    data:{labels:['BRI','Non-BRI'], datasets:[{data:[liabBRI, liabNonBRI], backgroundColor:['#0856c3','#d69a12'], borderWidth:2, borderColor:'#fff'}]},
+    data:{labels:liabChart.labels, datasets:[{data:liabChart.data, backgroundColor:liabChart.colors, borderWidth:2, borderColor:'#fff'}]},
     options:donutOpts
   });
 
@@ -2349,11 +2418,12 @@ function renderWsDashboard(){
   });
   const topN = obj => Object.entries(obj).sort((a,b)=>b[1].total-a[1].total).slice(0,5);
   const buyers = topN(grouped.Kredit), suppliers = topN(grouped.Debit);
-  const months = Math.max(State.wallet.monthsCount, 1);
+  const monthsSeen = computeMonthsCovered();
+  const monthsDivisor = Math.max(monthsSeen, 1);
 
   const rataCards = [
-    {label:'Rata-rata Penyaluran/Bulan', value:fmtRupiah(totalKredit/months), sub:`Total transaksi kredit ÷ ${State.wallet.monthsCount||0} bulan data`, cls:'success'},
-    {label:'Rata-rata Pembelian/Bulan', value:fmtRupiah(totalDebit/months), sub:`Total transaksi debit ÷ ${State.wallet.monthsCount||0} bulan data`, cls:'warning'},
+    {label:'Rata-rata Penyaluran/Bulan', value:fmtRupiah(totalKredit/monthsDivisor), sub:`Total transaksi kredit ÷ ${monthsSeen} bulan (berdasarkan tanggal transaksi)`, cls:'success'},
+    {label:'Rata-rata Pembelian/Bulan', value:fmtRupiah(totalDebit/monthsDivisor), sub:`Total transaksi debit ÷ ${monthsSeen} bulan (berdasarkan tanggal transaksi)`, cls:'warning'},
   ];
   $('wsRataRataStats').innerHTML = rataCards.map(cd => `
     <div class="stat-card ${cd.cls}"><div class="stat-label">${cd.label}</div><div class="stat-value">${cd.value}</div><div class="stat-sub">${cd.sub}</div></div>
@@ -2378,6 +2448,12 @@ function renderWsDashboard(){
 
 $('wsCustSearch').addEventListener('input', renderWsCustList);
 $('wsTxSearch').addEventListener('input', renderWsTransaksiTable);
+$('wsTxMonthFilter').addEventListener('change', renderWsTransaksiTable);
+$('wsTxBankFilter').addEventListener('change', renderWsTransaksiTable);
+$('btnClearTxFilter').addEventListener('click', () => {
+  $('wsTxSearch').value = ''; $('wsTxMonthFilter').value = ''; $('wsTxBankFilter').value = '';
+  renderWsTransaksiTable();
+});
 $('btnAddRekeningRow').addEventListener('click', addWsRekeningRow);
 $('btnAddFasilitasRow').addEventListener('click', addWsFasilitasRow);
 $('btnAddTransaksiRow').addEventListener('click', addWsTransaksiRow);

@@ -275,6 +275,17 @@ table.data-table tr:hover td{background:var(--accent-soft)}
 table.data-table tr.expanded td{background:var(--accent-soft)}
 table.data-table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;padding-right:18px}
 table.data-table .ctr{text-align:center}
+/* Wallet Share — compact inline-editable cells (recast) inside data tables */
+.ws-input{width:100%;min-width:90px;padding:5px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit;background:var(--surface)}
+.ws-input:focus{outline:none;border-color:var(--brand)}
+.ws-select{width:100%;padding:5px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit;background:var(--surface)}
+.ws-del{background:none;border:none;cursor:pointer;color:var(--danger);font-size:15px;padding:2px 6px}
+.ws-del:hover{background:#fdeceb;border-radius:4px}
+.ws-bisnis-toggle{padding:3px 10px;border-radius:12px;font-size:10.5px;font-weight:700;border:1px solid transparent;cursor:pointer}
+.ws-bisnis-toggle.on{background:#e4f6ee;color:#0a7d58;border-color:#a8ddc4}
+.ws-bisnis-toggle.off{background:#eef1f4;color:var(--text-soft);border-color:var(--border)}
+.ws-cust-row{padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--surface)}
+.ws-cust-row:hover{border-color:var(--brand);background:var(--accent-soft)}
 .row-toggle{
   background:none;border:none;cursor:pointer;color:var(--brand);
   font-size:14px;padding:0;width:22px;height:22px;
@@ -516,6 +527,7 @@ table.data-table td.empty{text-align:center}
       <button class="tab" data-panel="customers">👤 Customer 360<span class="badge" id="badgeCust">0</span></button>
       <button class="tab" data-panel="opportunity">Peluang Bisnis<span class="badge" id="badgeOpp">0</span></button>
       <button class="tab" data-panel="priority">🎯 Prioritas Kunjungan<span class="badge" id="badgePriority">0</span></button>
+      <button class="tab" data-panel="wallet">💰 Wallet Share</button>
     </div>
 
     <!-- TAB: OVERVIEW -->
@@ -636,13 +648,13 @@ table.data-table td.empty{text-align:center}
               <tbody>
                 <tr>
                   <td><strong>Coverage Rendah</strong><br><span style="font-weight:400;font-size:11px;color:var(--text-soft)">≤ P25 Coverage</span></td>
-                  <td class="ctr" style="background:#d64545;color:#fff;font-weight:700">🔴 Prioritas 1 — VISIT</td>
-                  <td class="ctr" style="background:#d69a12;color:#fff;font-weight:700">🟡 P3 — DEVELOP</td>
+                  <td class="ctr" style="background:#d64545;color:#fff;font-weight:700">🔴 VISIT</td>
+                  <td class="ctr" style="background:#d69a12;color:#fff;font-weight:700">🟡 DEVELOP</td>
                 </tr>
                 <tr>
                   <td><strong>Coverage Tinggi</strong><br><span style="font-weight:400;font-size:11px;color:var(--text-soft)">&gt; P25 Coverage</span></td>
-                  <td class="ctr" style="background:#e07b1f;color:#fff;font-weight:700">🟠 P2 — MAINTAIN</td>
-                  <td class="ctr" style="background:#0a9d6e;color:#fff;font-weight:700">🟢 P4 — MONITOR</td>
+                  <td class="ctr" style="background:#e07b1f;color:#fff;font-weight:700">🟠 MAINTAIN</td>
+                  <td class="ctr" style="background:#0a9d6e;color:#fff;font-weight:700">🟢 MONITOR</td>
                 </tr>
               </tbody>
             </table>
@@ -697,9 +709,13 @@ table.data-table td.empty{text-align:center}
 
           <div class="detail-section-title">Step 2 — Opportunity</div>
           <div class="upload-hint" style="margin-bottom:8px" id="priorityTableHint"></div>
-          <div class="search-wrap no-print" style="margin-bottom:12px;max-width:420px">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input class="input" id="prioritySearch" placeholder="Cari nama nasabah atau CIF...">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+            <div class="search-wrap no-print" style="max-width:420px;flex:1">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input class="input" id="prioritySearch" placeholder="Cari nama nasabah atau CIF...">
+            </div>
+            <button class="btn btn-outline btn-sm no-print" id="btnClearPriorityFilter">Reset Pencarian &amp; Kuadran</button>
+            <span style="font-size:12px;color:var(--text-muted)" id="priorityCounter"></span>
           </div>
           <div class="table-wrap">
             <table class="data-table" id="priorityTable">
@@ -708,6 +724,94 @@ table.data-table td.empty{text-align:center}
               </tr></thead>
               <tbody id="priorityBody"></tbody>
             </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: WALLET SHARE -->
+    <div class="tab-panel" id="panel-wallet">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">💰 Wallet Share &amp; Ekosistem Nasabah</div></div>
+        <div class="panel-body">
+          <div class="info-banner">
+            Analisis ini membandingkan <strong>Aset</strong> (saldo akhir seluruh rekening nasabah, semua bank) dan <strong>Liabilities</strong> (fasilitas kredit aktif dari SLIK, semua bank) untuk melihat porsi BRI vs Non-BRI dalam relationship nasabah, plus identifikasi <strong>Buyer</strong> (dari transaksi kredit) dan <strong>Supplier</strong> (dari transaksi debit) di rekening koran. Semua baris bisa di-<strong>edit/recast</strong> — kalau ada rekening atau fasilitas yang ternyata bukan untuk bisnis, tinggal matikan toggle "Bisnis"-nya supaya tidak ikut terhitung.
+          </div>
+
+          <div class="search-wrap no-print" style="max-width:420px;margin-bottom:12px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="input" id="wsCustSearch" placeholder="Cari nasabah untuk dianalisis (nama atau CIF)...">
+          </div>
+          <div id="wsCustList" style="margin-bottom:18px"></div>
+
+          <div id="wsWorkspace" style="display:none">
+            <div class="customer-hero" id="wsCustHero" style="margin-bottom:18px"></div>
+
+            <div class="detail-section-title">1. Rekening &amp; Saldo Akhir (Semua Bank) — Aset</div>
+            <p class="upload-hint" style="margin-bottom:8px">Paste dari Excel (kolom: Bank, Jenis, Saldo Akhir) — satu baris per rekening, dipisah tab. Jenis: Giro/Tabungan/Deposito/QRIS/EDC.</p>
+            <textarea class="input" id="wsRekeningPaste" rows="2" style="margin-bottom:8px;font-family:monospace" placeholder="BRI	Giro	739000000&#10;Bank Lain	Tabungan	7500000000"></textarea>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+              <button class="btn btn-outline btn-sm" id="btnParseRekening">⬆ Tambahkan dari Paste</button>
+              <button class="btn btn-outline btn-sm" id="btnAddRekeningRow">+ Baris Manual</button>
+            </div>
+            <div class="table-wrap" style="margin-bottom:18px">
+              <table class="data-table"><thead><tr><th>Bank</th><th>Jenis</th><th class="num">Saldo Akhir</th><th class="ctr">Bisnis?</th><th class="ctr">Hapus</th></tr></thead>
+                <tbody id="wsRekeningBody"></tbody>
+              </table>
+            </div>
+
+            <div class="detail-section-title">2. Fasilitas Kredit / SLIK (Semua Bank) — Liabilities</div>
+            <p class="upload-hint" style="margin-bottom:8px">Upload file "Credit Profiling" (SLIK) langsung — sistem otomatis ambil fasilitas dengan Kondisi "Fasilitas Aktif" dan Tujuan Modal Kerja/Investasi/Garansi (Konsumsi &amp; Lainnya dilewati). Atau paste manual dari Excel (kolom: Bank, Jenis Fasilitas, Plafon, Baki Debet).</p>
+            <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+              <button class="btn btn-primary btn-sm" id="btnPickSlikFile">📁 Upload File SLIK / Credit Profiling</button>
+              <input type="file" id="slikFileInput" accept=".xlsx" style="display:none">
+              <span class="upload-hint" id="slikFileStatus"></span>
+            </div>
+            <textarea class="input" id="wsFasilitasPaste" rows="2" style="margin-bottom:8px;font-family:monospace" placeholder="BRI	Modal Kerja	1000000000	678738000&#10;Bank Lain	Investasi	500000000	425000000"></textarea>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+              <button class="btn btn-outline btn-sm" id="btnParseFasilitas">⬆ Tambahkan dari Paste</button>
+              <button class="btn btn-outline btn-sm" id="btnAddFasilitasRow">+ Baris Manual</button>
+            </div>
+            <div class="table-wrap" style="margin-bottom:18px">
+              <table class="data-table"><thead><tr><th>Bank</th><th>Jenis Fasilitas</th><th class="num">Plafon</th><th class="num">Baki Debet</th><th class="ctr">Bisnis?</th><th class="ctr">Hapus</th></tr></thead>
+                <tbody id="wsFasilitasBody"></tbody>
+              </table>
+            </div>
+
+            <div class="detail-section-title">3. Transaksi Rekening Koran</div>
+            <p class="upload-hint" style="margin-bottom:8px">Upload file mutasi rekening (format Transaction Date/Description/Debit/Credit/Balance, misal MUTASI_BP_BRI atau BRISIM) — boleh pilih beberapa file bulan sekaligus. Nama lawan transaksi diekstrak otomatis dari kolom Description (pola NBMB/IBIZ/Transfer BI-Fast/ATM), dan yang namanya sama dengan nasabah otomatis dianggap transfer internal (bukan Buyer/Supplier). Atau paste manual dari Excel (kolom: Tanggal, Nama Lawan Transaksi, Tipe, Nominal).</p>
+            <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+              <button class="btn btn-primary btn-sm" id="btnPickKoranFile">📁 Upload File Mutasi Rekening (bisa multi-file)</button>
+              <input type="file" id="koranFileInput" accept=".xlsx" multiple style="display:none">
+              <span class="upload-hint" id="koranFileStatus"></span>
+            </div>
+            <textarea class="input" id="wsTransaksiPaste" rows="2" style="margin-bottom:8px;font-family:monospace" placeholder="01/03/2025	PT Lintas Sedaya Sejahtera	Kredit	1660000000&#10;05/03/2025	PT Alam Raya	Debit	46000000"></textarea>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+              <button class="btn btn-outline btn-sm" id="btnParseTransaksi">⬆ Tambahkan dari Paste</button>
+              <button class="btn btn-outline btn-sm" id="btnAddTransaksiRow">+ Baris Manual</button>
+            </div>
+            <div class="table-wrap" style="margin-bottom:18px">
+              <table class="data-table"><thead><tr><th>Tanggal</th><th>Nama Lawan Transaksi</th><th class="ctr">Tipe</th><th class="num">Nominal</th><th class="ctr">Hapus</th></tr></thead>
+                <tbody id="wsTransaksiBody"></tbody>
+              </table>
+            </div>
+
+            <div class="detail-section-title">Ringkasan Wallet Share</div>
+            <div class="stats-grid" id="wsSummaryStats" style="margin-bottom:18px"></div>
+
+            <div class="detail-section-title">Potensi Buyer — Top 5 Transaksi Kredit</div>
+            <div class="table-wrap" style="margin-bottom:18px">
+              <table class="data-table"><thead><tr><th>Nama</th><th class="num">Jml Transaksi</th><th class="num">Total Nominal</th></tr></thead>
+                <tbody id="wsBuyerBody"></tbody>
+              </table>
+            </div>
+
+            <div class="detail-section-title">Potensi Supplier — Top 5 Transaksi Debit</div>
+            <div class="table-wrap">
+              <table class="data-table"><thead><tr><th>Nama</th><th class="num">Jml Transaksi</th><th class="num">Total Nominal</th></tr></thead>
+                <tbody id="wsSupplierBody"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -1609,10 +1713,10 @@ $('oppSearch').addEventListener('input', () => { if(State.activeOpp) selectOpp(S
        matrix alone never plays final judge.
    ================================================================= */
 const QUAD_DEFS = {
-  p1:       {quadName:'Priority 1', status:'Visit',    label:'Priority 1 — Visit',    emoji:'🔴', sub:'OS tinggi + Coverage rendah. Nasabah punya exposure besar, tetapi funding relationship relatif rendah. Fokus utama kunjungan.', badgeCls:'k-5'},
-  maintain: {quadName:'Priority 2', status:'Maintain', label:'Priority 2 — Maintain', emoji:'🟠', sub:'OS tinggi + Coverage tinggi. Nasabah bernilai tinggi dan relationship sudah kuat. Bukan berarti tidak perlu dikunjungi, tapi fokusnya menjaga relationship dan mencari deepening opportunity.', badgeCls:'k-3'},
-  monitor:  {quadName:'Priority 3', status:'Develop',  label:'Priority 3 — Develop',  emoji:'🟡', sub:'OS rendah + Coverage rendah. Relationship masih rendah, tetapi exposure relatif kecil. Dikembangkan berdasarkan opportunity yang ditemukan, bukan prioritas utama kunjungan.', badgeCls:'k-2'},
-  stable:   {quadName:'Priority 4', status:'Monitor',  label:'Priority 4 — Monitor',  emoji:'🟢', sub:'OS rendah + Coverage tinggi. Exposure relatif kecil dan relationship sudah cukup baik. Monitoring/maintain, bukan target utama kunjungan.', badgeCls:'k-1'},
+  p1:       {quadName:'Priority 1', status:'Visit',    label:'VISIT',    emoji:'🔴', sub:'OS tinggi + Coverage rendah. Nasabah punya exposure besar, tetapi funding relationship relatif rendah. Fokus utama kunjungan.', badgeCls:'k-5'},
+  maintain: {quadName:'Priority 2', status:'Maintain', label:'MAINTAIN', emoji:'🟠', sub:'OS tinggi + Coverage tinggi. Nasabah bernilai tinggi dan relationship sudah kuat. Bukan berarti tidak perlu dikunjungi, tapi fokusnya menjaga relationship dan mencari deepening opportunity.', badgeCls:'k-3'},
+  monitor:  {quadName:'Priority 3', status:'Develop',  label:'DEVELOP',  emoji:'🟡', sub:'OS rendah + Coverage rendah. Relationship masih rendah, tetapi exposure relatif kecil. Dikembangkan berdasarkan opportunity yang ditemukan, bukan prioritas utama kunjungan.', badgeCls:'k-2'},
+  stable:   {quadName:'Priority 4', status:'Monitor',  label:'MONITOR',  emoji:'🟢', sub:'OS rendah + Coverage tinggi. Exposure relatif kecil dan relationship sudah cukup baik. Monitoring/maintain, bukan target utama kunjungan.', badgeCls:'k-1'},
 };
 const QUAD_COLOR = {p1:'#d64545', maintain:'#e07b1f', monitor:'#d69a12', stable:'#0a9d6e'};
 
@@ -1710,6 +1814,9 @@ function renderPriorityTable(){
     if(oa !== ob) return oa - ob;
     return b.c.totalBakiDebet - a.c.totalBakiDebet;
   });
+  const activeQuadLabel = State.activePriorityQuad ? ` · kuadran: ${QUAD_DEFS[State.activePriorityQuad].label}` : '';
+  const searchLabel = q ? ` · pencarian: "${escapeHtml(q)}"` : '';
+  $('priorityCounter').textContent = `Menampilkan ${rows.length} dari ${State.priority.list.length} nasabah${activeQuadLabel}${searchLabel}`;
   $('priorityBody').innerHTML = rows.map(r => `
     <tr>
       <td><strong>${escapeHtml(r.c.nama)}</strong></td>
@@ -1852,6 +1959,12 @@ function renderPriorityBasisCard(){
   }
 }
 $('prioritySearch').addEventListener('input', renderPriorityTable);
+$('btnClearPriorityFilter').addEventListener('click', () => {
+  $('prioritySearch').value = '';
+  State.activePriorityQuad = null;
+  document.querySelectorAll('#priorityQuadGrid .opp-card').forEach(el => el.classList.remove('active'));
+  renderPriorityTable();
+});
 $('btnApplyPriorityOverride').addEventListener('click', () => {
   const osVal = $('priorityOsOverride').value;
   const covVal = $('priorityCovOverride').value;
@@ -1869,6 +1982,437 @@ $('btnResetPriorityOverride').addEventListener('click', () => {
   renderPriorityTab();
   showToast('Kembali ke cut-off P75/P25 otomatis.', 'info');
 });
+
+/* ===================================================================
+   WALLET SHARE & ECOSYSTEM (per-customer deep dive)
+   ---------------------------------------------------------------
+   Aset = ending balance across every account (all banks: Giro, Tabungan,
+   Deposito, QRIS, EDC) gathered for this customer — BRI accounts are
+   pre-filled automatically from Customer 360 data, everything else (other
+   banks) is entered/pasted manually since it comes from rekening koran.
+   Liabilities = active credit facilities from SLIK (Modal Kerja, Investasi,
+   Garansi) across all banks — BRI facilities pre-filled, others manual.
+   Buyer/Supplier are inferred from rekening-koran transactions: credit
+   ("money in") become Buyer candidates, debit ("money out") become
+   Supplier candidates — excluding any counterparty whose name matches the
+   customer's own name (a self-transfer isn't a business counterparty).
+   Every row can be recast: edited inline, or toggled out of the "Bisnis"
+   calculation, since not everything gathered is actually business-related.
+   ================================================================= */
+let wsIdCounter = 1;
+State.wallet = {cif:null, rekening:[], fasilitas:[], transaksi:[]};
+
+function splitPastedLine(line){
+  if(line.includes('\t')) return line.split('\t').map(s=>s.trim());
+  if(line.includes(';')) return line.split(';').map(s=>s.trim());
+  return line.split(/\s{2,}/).map(s=>s.trim());
+}
+function isBRI(bank){ const b = cleanStr(bank).toUpperCase(); return b.includes('BRI') || b.includes('BANK RAKYAT INDONESIA'); }
+
+function renderWalletTab(){
+  renderWsCustList();
+  if(State.wallet.cif && State.customers.has(State.wallet.cif)){
+    $('wsWorkspace').style.display = 'block';
+    renderWsWorkspace();
+  } else {
+    $('wsWorkspace').style.display = 'none';
+  }
+}
+
+function renderWsCustList(){
+  const q = ($('wsCustSearch').value || '').toLowerCase().trim();
+  const list = $('wsCustList');
+  if(!q){ list.innerHTML = ''; return; }
+  const matches = getScopedCustomers().filter(c => `${c.nama} ${c.cif}`.toLowerCase().includes(q)).slice(0, 15);
+  if(!matches.length){ list.innerHTML = '<div class="upload-hint">Tidak ada nasabah yang cocok.</div>'; return; }
+  list.innerHTML = matches.map(c => `
+    <div class="ws-cust-row" onclick="selectWalletCustomer('${escapeHtml(c.cif)}')">
+      <div><strong>${escapeHtml(c.nama)}</strong> <span style="color:var(--text-soft);font-family:monospace;font-size:11px">${escapeHtml(c.cif)}</span></div>
+      <div style="font-size:11.5px;color:var(--text-muted)">Baki Debet BRI: ${fmtRupiah(c.totalBakiDebet)}</div>
+    </div>
+  `).join('');
+}
+
+function selectWalletCustomer(cif){
+  if(State.wallet.cif !== cif){
+    State.wallet = {cif, rekening:[], fasilitas:[], transaksi:[]};
+    // Seed with the customer's known BRI facilities/accounts automatically so
+    // the RM doesn't have to retype what the system already knows.
+    const c = State.customers.get(cif);
+    if(c){
+      c.tabungan.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:'BRI', jenis:'Tabungan', saldo:t._balance, bisnis:true}));
+      c.giro.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:'BRI', jenis:'Giro', saldo:t._balance, bisnis:true}));
+      c.deposito.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:'BRI', jenis:'Deposito', saldo:t._principal, bisnis:true}));
+      c.loans.forEach(l => State.wallet.fasilitas.push({id:wsIdCounter++, bank:'BRI', jenis: /investasi/i.test(l.description||'') ? 'Investasi' : 'Modal Kerja', plafon:l._plafon, baki:l._baki, bisnis:true}));
+    }
+  }
+  $('wsCustSearch').value = '';
+  renderWalletTab();
+}
+window.selectWalletCustomer = selectWalletCustomer;
+
+function renderWsWorkspace(){
+  const c = State.customers.get(State.wallet.cif);
+  if(!c) return;
+  $('wsCustHero').innerHTML = `
+    <div class="customer-hero-inner">
+      <span class="label-tag">Wallet Share Analysis</span>
+      <div class="cname">${escapeHtml(c.nama)}</div>
+      <div class="customer-hero-grid">
+        <div><div class="f-label">CIF</div><div class="f-value">${escapeHtml(c.cif)}</div></div>
+        <div><div class="f-label">Unit Kerja</div><div class="f-value">${escapeHtml(c.uker)}</div></div>
+        <div><div class="f-label">Baki Debet BRI</div><div class="f-value">${fmtRupiah(c.totalBakiDebet)}</div></div>
+      </div>
+    </div>
+  `;
+  renderWsRekeningTable();
+  renderWsFasilitasTable();
+  renderWsTransaksiTable();
+  renderWsSummary();
+}
+
+/* ---- 1. Rekening (Aset) ---- */
+function renderWsRekeningTable(){
+  $('wsRekeningBody').innerHTML = State.wallet.rekening.map(r => `
+    <tr>
+      <td><input class="ws-input" value="${escapeHtml(r.bank)}" onchange="updateWsRow('rekening',${r.id},'bank',this.value)"></td>
+      <td><select class="ws-select" onchange="updateWsRow('rekening',${r.id},'jenis',this.value)">
+        ${['Giro','Tabungan','Deposito','QRIS','EDC'].map(j=>`<option value="${j}" ${r.jenis===j?'selected':''}>${j}</option>`).join('')}
+      </select></td>
+      <td class="num"><input class="ws-input" type="number" value="${r.saldo}" style="text-align:right" onchange="updateWsRow('rekening',${r.id},'saldo',this.value)"></td>
+      <td class="ctr"><button class="ws-bisnis-toggle ${r.bisnis?'on':'off'}" onclick="toggleWsBisnis('rekening',${r.id})">${r.bisnis?'Bisnis':'Non-Bisnis'}</button></td>
+      <td class="ctr"><button class="ws-del" onclick="deleteWsRow('rekening',${r.id})">✕</button></td>
+    </tr>
+  `).join('') || '<tr><td colspan="5" class="empty">Belum ada data rekening.</td></tr>';
+}
+function addWsRekeningRow(){
+  State.wallet.rekening.push({id:wsIdCounter++, bank:'BRI', jenis:'Tabungan', saldo:0, bisnis:true});
+  renderWsRekeningTable(); renderWsSummary();
+}
+function parseWsRekeningPaste(){
+  const text = $('wsRekeningPaste').value.trim();
+  if(!text){ showToast('Tempel data dulu di kotak paste-nya.', 'warning'); return; }
+  let added = 0;
+  text.split(/\r?\n/).filter(Boolean).forEach(line => {
+    const cols = splitPastedLine(line);
+    if(cols.length < 3) return;
+    const [bank, jenis, saldo] = cols;
+    if(/^bank$/i.test(bank)) return;
+    State.wallet.rekening.push({id:wsIdCounter++, bank:bank||'-', jenis:jenis||'Tabungan', saldo:parseNum(saldo), bisnis:true});
+    added++;
+  });
+  $('wsRekeningPaste').value = '';
+  renderWsRekeningTable(); renderWsSummary();
+  showToast(`${added} baris rekening ditambahkan.`, 'success');
+}
+
+/* ---- 2. Fasilitas (Liabilities) ---- */
+function renderWsFasilitasTable(){
+  $('wsFasilitasBody').innerHTML = State.wallet.fasilitas.map(r => `
+    <tr>
+      <td><input class="ws-input" value="${escapeHtml(r.bank)}" onchange="updateWsRow('fasilitas',${r.id},'bank',this.value)"></td>
+      <td><select class="ws-select" onchange="updateWsRow('fasilitas',${r.id},'jenis',this.value)">
+        ${['Modal Kerja','Investasi','Garansi'].map(j=>`<option value="${j}" ${r.jenis===j?'selected':''}>${j}</option>`).join('')}
+      </select></td>
+      <td class="num"><input class="ws-input" type="number" value="${r.plafon}" style="text-align:right" onchange="updateWsRow('fasilitas',${r.id},'plafon',this.value)"></td>
+      <td class="num"><input class="ws-input" type="number" value="${r.baki}" style="text-align:right" onchange="updateWsRow('fasilitas',${r.id},'baki',this.value)"></td>
+      <td class="ctr"><button class="ws-bisnis-toggle ${r.bisnis?'on':'off'}" onclick="toggleWsBisnis('fasilitas',${r.id})">${r.bisnis?'Bisnis':'Non-Bisnis'}</button></td>
+      <td class="ctr"><button class="ws-del" onclick="deleteWsRow('fasilitas',${r.id})">✕</button></td>
+    </tr>
+  `).join('') || '<tr><td colspan="6" class="empty">Belum ada data fasilitas.</td></tr>';
+}
+function addWsFasilitasRow(){
+  State.wallet.fasilitas.push({id:wsIdCounter++, bank:'BRI', jenis:'Modal Kerja', plafon:0, baki:0, bisnis:true});
+  renderWsFasilitasTable(); renderWsSummary();
+}
+function parseWsFasilitasPaste(){
+  const text = $('wsFasilitasPaste').value.trim();
+  if(!text){ showToast('Tempel data dulu di kotak paste-nya.', 'warning'); return; }
+  let added = 0;
+  text.split(/\r?\n/).filter(Boolean).forEach(line => {
+    const cols = splitPastedLine(line);
+    if(cols.length < 4) return;
+    const [bank, jenis, plafon, baki] = cols;
+    if(/^bank$/i.test(bank)) return;
+    State.wallet.fasilitas.push({id:wsIdCounter++, bank:bank||'-', jenis:jenis||'Modal Kerja', plafon:parseNum(plafon), baki:parseNum(baki), bisnis:true});
+    added++;
+  });
+  $('wsFasilitasPaste').value = '';
+  renderWsFasilitasTable(); renderWsSummary();
+  showToast(`${added} baris fasilitas ditambahkan.`, 'success');
+}
+
+/* Real SLIK file parser — "Credit Profiling" export format (one row per
+   facility, columns include Nama Debitur/BANK/Kategori/Tujuan/Jenis
+   Penggunaan/Plafon/Baki Debet/Kondisi). Only imports facilities that are
+   actually active (Kondisi = "Fasilitas Aktif") and business-purpose
+   (Kategori = Garansi, or Tujuan = Modal Kerja/Investasi) — Konsumsi/Lainnya
+   are skipped since they're not part of the business liabilities picture. */
+function readSlikExcel(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try{
+        const wb = XLSX.read(e.target.result, {type:'array'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const aoa = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:''});
+        const hdrIdx = aoa.findIndex(row => {
+          const set = new Set(row.map(v => cleanStr(v).toUpperCase()));
+          return set.has('BANK') && set.has('KUALITAS') && set.has('KONDISI');
+        });
+        if(hdrIdx < 0){ resolve([]); return; }
+        const header = aoa[hdrIdx].map(v => cleanStr(v).toUpperCase());
+        const iBank = header.indexOf('BANK'), iKategori = header.indexOf('KATEGORI'),
+              iTujuan = header.indexOf('TUJUAN/JENIS PENGGUNAAN'), iPlafon = header.indexOf('PLAFON'),
+              iBaki = header.indexOf('BAKI DEBET/NOMINAL'), iKondisi = header.indexOf('KONDISI');
+        const out = [];
+        for(let r = hdrIdx+1; r < aoa.length; r++){
+          const row = aoa[r];
+          if(!row || !cleanStr(row[iBank])) continue;
+          if(!/fasilitas aktif/i.test(cleanStr(row[iKondisi]))) continue;
+          const kategori = cleanStr(row[iKategori]), tujuan = cleanStr(row[iTujuan]);
+          let jenis = null;
+          if(/garansi/i.test(kategori)) jenis = 'Garansi';
+          else if(/modal kerja/i.test(tujuan)) jenis = 'Modal Kerja';
+          else if(/investasi/i.test(tujuan)) jenis = 'Investasi';
+          if(!jenis) continue;
+          out.push({bank:cleanStr(row[iBank]), jenis, plafon:parseNum(row[iPlafon]), baki:parseNum(row[iBaki])});
+        }
+        resolve(out);
+      } catch(err){ reject(err); }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+async function handleSlikFile(file){
+  $('slikFileStatus').textContent = `⏳ Membaca ${file.name}...`;
+  try{
+    const rows = await readSlikExcel(file);
+    if(!rows.length){
+      $('slikFileStatus').textContent = '✗ Tidak ditemukan fasilitas aktif Modal Kerja/Investasi/Garansi di file ini.';
+      return;
+    }
+    rows.forEach(r => State.wallet.fasilitas.push({id:wsIdCounter++, bank:r.bank, jenis:r.jenis, plafon:r.plafon, baki:r.baki, bisnis:true}));
+    renderWsFasilitasTable(); renderWsSummary();
+    $('slikFileStatus').textContent = `✓ ${rows.length} fasilitas aktif ditambahkan dari ${file.name}.`;
+    showToast(`${rows.length} fasilitas SLIK ditambahkan.`, 'success');
+  } catch(err){
+    $('slikFileStatus').textContent = `✗ Gagal membaca file: ${err.message}`;
+    showToast('Gagal membaca file SLIK: ' + err.message, 'error');
+  }
+}
+
+/* ---- 3. Transaksi (Buyer/Supplier) ---- */
+function renderWsTransaksiTable(){
+  $('wsTransaksiBody').innerHTML = State.wallet.transaksi.map(r => `
+    <tr>
+      <td><input class="ws-input" value="${escapeHtml(r.tanggal)}" onchange="updateWsRow('transaksi',${r.id},'tanggal',this.value)"></td>
+      <td><input class="ws-input" value="${escapeHtml(r.nama)}" onchange="updateWsRow('transaksi',${r.id},'nama',this.value)"></td>
+      <td class="ctr"><select class="ws-select" onchange="updateWsRow('transaksi',${r.id},'tipe',this.value)">
+        ${['Kredit','Debit'].map(j=>`<option value="${j}" ${r.tipe===j?'selected':''}>${j}</option>`).join('')}
+      </select></td>
+      <td class="num"><input class="ws-input" type="number" value="${r.nominal}" style="text-align:right" onchange="updateWsRow('transaksi',${r.id},'nominal',this.value)"></td>
+      <td class="ctr"><button class="ws-del" onclick="deleteWsRow('transaksi',${r.id})">✕</button></td>
+    </tr>
+  `).join('') || '<tr><td colspan="5" class="empty">Belum ada data transaksi.</td></tr>';
+}
+function addWsTransaksiRow(){
+  State.wallet.transaksi.push({id:wsIdCounter++, tanggal:'', nama:'', tipe:'Kredit', nominal:0});
+  renderWsTransaksiTable(); renderWsSummary();
+}
+function parseWsTransaksiPaste(){
+  const text = $('wsTransaksiPaste').value.trim();
+  if(!text){ showToast('Tempel data dulu di kotak paste-nya.', 'warning'); return; }
+  let added = 0;
+  text.split(/\r?\n/).filter(Boolean).forEach(line => {
+    const cols = splitPastedLine(line);
+    if(cols.length < 4) return;
+    const [tanggal, nama, tipe, nominal] = cols;
+    if(/^tanggal$/i.test(tanggal)) return;
+    const tipeNorm = /kredit|masuk|^cr$/i.test(tipe) ? 'Kredit' : 'Debit';
+    State.wallet.transaksi.push({id:wsIdCounter++, tanggal:tanggal||'-', nama:nama||'-', tipe:tipeNorm, nominal:parseNum(nominal)});
+    added++;
+  });
+  $('wsTransaksiPaste').value = '';
+  renderWsTransaksiTable(); renderWsSummary();
+  showToast(`${added} baris transaksi ditambahkan.`, 'success');
+}
+
+/* Real rekening-koran mutation file parser — BRI's own mutation export format
+   (columns: Transaction Date (DD/MM) | Description | Debit | Credit |
+   Balance), seen under names like MUTASI_BP_BRI_* or BRISIM_*. Multiple
+   monthly files can be uploaded together and are all appended.
+   The counterparty name is extracted from the free-text Description using
+   the patterns actually observed in these exports: mobile-banking transfers
+   ("NBMB <name> TO <self>"), internet-banking transfers which can run in
+   either direction ("IBIZ <a> TO <b>" — whichever side isn't the customer's
+   own name is the counterparty), BI-Fast transfers to another bank
+   ("Transfer BI-Fast ke <bank> - <account> - <name>"), and ATM transfers.
+   Anything that doesn't match a known pattern (bank fees, interest, raw
+   BI-Fast system codes) falls back to using the trimmed description itself,
+   so the row still shows up and can be renamed or excluded manually. */
+function readKoranExcel(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try{
+        const wb = XLSX.read(e.target.result, {type:'array'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const aoa = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:''});
+        const hdrIdx = aoa.findIndex(row =>
+          /transaction date/i.test(cleanStr(row[0])) || /description/i.test(cleanStr(row[1])));
+        if(hdrIdx < 0){ resolve([]); return; }
+        const out = [];
+        for(let r = hdrIdx+1; r < aoa.length; r++){
+          const row = aoa[r];
+          if(!row || row.length < 5) continue;
+          const [tgl, desc, debit, credit] = row;
+          const d = parseNum(debit), k = parseNum(credit);
+          if(!cleanStr(desc) && !d && !k) continue;
+          out.push({tanggal:cleanStr(tgl), desc:cleanStr(desc).replace(/\s+/g,' '), debit:d, credit:k});
+        }
+        resolve(out);
+      } catch(err){ reject(err); }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+function parseKoranCounterparty(desc, selfNorm){
+  let m;
+  m = desc.match(/^NBMB\s+(.+?)\s+TO\s+.+?(?:\s+ESB:|$)/i);
+  if(m) return cleanStr(m[1]);
+  m = desc.match(/^IBIZ\s+(.+?)\s+TO\s+(.+?)(?:\s+ESB:|$)/i);
+  if(m){
+    const a = cleanStr(m[1]), b = cleanStr(m[2]);
+    return namesLikelyMatch(normName(a), selfNorm) ? b : a;
+  }
+  m = desc.match(/Transfer BI-Fast ke .+?-\s*[\d\/]+\s*-\s*(.+)$/i);
+  if(m) return cleanStr(m[1]);
+  m = desc.match(/ATM\s*\d*\s+(.+?)\s+TO\s+/i);
+  if(m) return cleanStr(m[1]);
+  return desc.length > 60 ? desc.slice(0,60) : desc;
+}
+async function handleKoranFiles(fileList){
+  const c = State.customers.get(State.wallet.cif);
+  if(!c) return;
+  const selfNorm = normName(c.nama);
+  let totalAdded = 0, filesOk = 0;
+  for(const file of fileList){
+    $('koranFileStatus').textContent = `⏳ Membaca ${file.name}...`;
+    try{
+      const rows = await readKoranExcel(file);
+      if(!rows.length){ showToast(`${file.name}: format tidak dikenali, dilewati.`, 'warning'); continue; }
+      rows.forEach(r => {
+        const nama = parseKoranCounterparty(r.desc, selfNorm);
+        if(r.credit > 0){ State.wallet.transaksi.push({id:wsIdCounter++, tanggal:r.tanggal, nama, tipe:'Kredit', nominal:r.credit}); totalAdded++; }
+        if(r.debit > 0){ State.wallet.transaksi.push({id:wsIdCounter++, tanggal:r.tanggal, nama, tipe:'Debit', nominal:r.debit}); totalAdded++; }
+      });
+      filesOk++;
+    } catch(err){
+      showToast(`Gagal membaca ${file.name}: ${err.message}`, 'error');
+    }
+  }
+  renderWsTransaksiTable(); renderWsSummary();
+  $('koranFileStatus').textContent = `✓ ${totalAdded} baris transaksi ditambahkan dari ${filesOk} file.`;
+  showToast(`${totalAdded} baris transaksi ditambahkan dari ${filesOk} file.`, 'success');
+}
+
+/* ---- Shared row helpers ---- */
+function updateWsRow(section, id, field, value){
+  const row = State.wallet[section].find(r => r.id === id);
+  if(!row) return;
+  row[field] = ['saldo','plafon','baki','nominal'].includes(field) ? parseNum(value) : value;
+  renderWsSummary();
+}
+window.updateWsRow = updateWsRow;
+function toggleWsBisnis(section, id){
+  const row = State.wallet[section].find(r => r.id === id);
+  if(!row) return;
+  row.bisnis = !row.bisnis;
+  if(section==='rekening') renderWsRekeningTable(); else renderWsFasilitasTable();
+  renderWsSummary();
+}
+window.toggleWsBisnis = toggleWsBisnis;
+function deleteWsRow(section, id){
+  State.wallet[section] = State.wallet[section].filter(r => r.id !== id);
+  if(section==='rekening') renderWsRekeningTable();
+  else if(section==='fasilitas') renderWsFasilitasTable();
+  else renderWsTransaksiTable();
+  renderWsSummary();
+}
+window.deleteWsRow = deleteWsRow;
+
+/* ---- Summary: Aset/Liabilities BRI vs Non-BRI, Wallet Share, Buyer/Supplier ---- */
+function renderWsSummary(){
+  const c = State.customers.get(State.wallet.cif);
+  if(!c) return;
+  const rek = State.wallet.rekening.filter(r => r.bisnis);
+  const fas = State.wallet.fasilitas.filter(r => r.bisnis);
+
+  const asetBRI = rek.filter(r=>isBRI(r.bank)).reduce((s,r)=>s+r.saldo,0);
+  const asetNonBRI = rek.filter(r=>!isBRI(r.bank)).reduce((s,r)=>s+r.saldo,0);
+  const asetTotal = asetBRI + asetNonBRI;
+
+  const liabBRI = fas.filter(r=>isBRI(r.bank)).reduce((s,r)=>s+r.baki,0);
+  const liabNonBRI = fas.filter(r=>!isBRI(r.bank)).reduce((s,r)=>s+r.baki,0);
+  const liabTotal = liabBRI + liabNonBRI;
+
+  const grandBRI = asetBRI + liabBRI, grandTotal = asetTotal + liabTotal;
+  const walletSharePct = grandTotal > 0 ? (grandBRI/grandTotal*100) : null;
+
+  const cards = [
+    {label:'Total Aset (Bisnis)', value:fmtRupiah(asetTotal), sub:`BRI ${fmtRupiah(asetBRI)} (${asetTotal>0?(asetBRI/asetTotal*100).toFixed(1):0}%)`, cls:''},
+    {label:'Total Liabilities (Bisnis)', value:fmtRupiah(liabTotal), sub:`BRI ${fmtRupiah(liabBRI)} (${liabTotal>0?(liabBRI/liabTotal*100).toFixed(1):0}%)`, cls:''},
+    {label:'Wallet Share BRI', value: walletSharePct!=null ? walletSharePct.toFixed(1)+'%' : '-', sub:'(Aset BRI + Liabilities BRI) ÷ Total', cls:'accent'},
+    {label:'Non-BRI Exposure', value:fmtRupiah(asetNonBRI + liabNonBRI), sub:'aset & liabilities di luar BRI', cls:'warning'},
+  ];
+  $('wsSummaryStats').innerHTML = cards.map(cd => `
+    <div class="stat-card ${cd.cls}">
+      <div class="stat-label">${cd.label}</div>
+      <div class="stat-value">${cd.value}</div>
+      <div class="stat-sub">${cd.sub}</div>
+    </div>
+  `).join('');
+
+  // Buyer/Supplier: group transaksi by counterparty name, excluding self-transfers
+  // (a "transfer" from/to an account under the customer's own name is not a
+  // business counterparty — it's just money moving between their own accounts).
+  const selfName = normName(c.nama);
+  const grouped = {Kredit:{}, Debit:{}};
+  State.wallet.transaksi.forEach(t => {
+    const n = normName(t.nama);
+    if(!n || namesLikelyMatch(n, selfName)) return;
+    const bucket = grouped[t.tipe] || grouped.Debit;
+    if(!bucket[t.nama]) bucket[t.nama] = {count:0, total:0};
+    bucket[t.nama].count++;
+    bucket[t.nama].total += t.nominal;
+  });
+  const topN = obj => Object.entries(obj).sort((a,b)=>b[1].total-a[1].total).slice(0,5);
+  const buyers = topN(grouped.Kredit), suppliers = topN(grouped.Debit);
+
+  $('wsBuyerBody').innerHTML = buyers.map(([nama,d]) => `
+    <tr><td>${escapeHtml(nama)}</td><td class="num">${d.count}</td><td class="num">${fmtRupiah(d.total)}</td></tr>
+  `).join('') || '<tr><td colspan="3" class="empty">Belum ada transaksi kredit yang teridentifikasi sebagai buyer.</td></tr>';
+
+  $('wsSupplierBody').innerHTML = suppliers.map(([nama,d]) => `
+    <tr><td>${escapeHtml(nama)}</td><td class="num">${d.count}</td><td class="num">${fmtRupiah(d.total)}</td></tr>
+  `).join('') || '<tr><td colspan="3" class="empty">Belum ada transaksi debit yang teridentifikasi sebagai supplier.</td></tr>';
+}
+
+$('wsCustSearch').addEventListener('input', renderWsCustList);
+$('btnParseRekening').addEventListener('click', parseWsRekeningPaste);
+$('btnAddRekeningRow').addEventListener('click', addWsRekeningRow);
+$('btnParseFasilitas').addEventListener('click', parseWsFasilitasPaste);
+$('btnAddFasilitasRow').addEventListener('click', addWsFasilitasRow);
+$('btnParseTransaksi').addEventListener('click', parseWsTransaksiPaste);
+$('btnAddTransaksiRow').addEventListener('click', addWsTransaksiRow);
+$('btnPickSlikFile').addEventListener('click', () => $('slikFileInput').click());
+$('slikFileInput').addEventListener('change', () => { if($('slikFileInput').files[0]) handleSlikFile($('slikFileInput').files[0]); });
+$('btnPickKoranFile').addEventListener('click', () => $('koranFileInput').click());
+$('koranFileInput').addEventListener('change', () => { if($('koranFileInput').files.length) handleKoranFiles([...$('koranFileInput').files]); });
+
 
 /* ===================================================================
    CHARTS

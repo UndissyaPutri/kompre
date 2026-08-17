@@ -689,9 +689,10 @@ table.data-table td.empty{text-align:center}
           <div class="detail-section-title">Step 1 — Matrix Kuadran OS × Coverage</div>
           <div class="opp-grid" id="priorityQuadGrid"></div>
 
-          <div class="chart-card" style="margin-bottom:18px">
+          <div class="chart-card" style="margin-bottom:18px;position:relative">
             <h3>Sebaran Nasabah — Baki Debet (OS) vs Funding Coverage</h3>
             <div id="priorityScatterWrap" style="width:100%;overflow-x:auto"></div>
+            <div id="priorityTooltip" style="position:fixed;pointer-events:none;display:none;z-index:1000;background:var(--brand-darker);color:#fff;padding:7px 11px;border-radius:6px;font-size:12px;line-height:1.5;box-shadow:0 4px 14px rgba(0,0,0,.3);white-space:nowrap"></div>
           </div>
 
           <div class="detail-section-title">Step 2 — Opportunity</div>
@@ -1764,8 +1765,8 @@ function renderPriorityChart(){
   const points = p.list.map(r => {
     const cx = xPix(r.c.totalBakiDebet), cy = yPix(r.cov*100);
     const color = QUAD_COLOR[r.quad] || '#8ba6bd';
-    const tip = `${r.c.nama}: OS ${fmtRupiah(r.c.totalBakiDebet)}, Coverage ${(r.cov*100).toFixed(1)}%`;
-    return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="5" fill="${color}" fill-opacity="0.85" stroke="#fff" stroke-width="1"><title>${escapeHtml(tip)}</title></circle>`;
+    const tip = `${r.c.nama}\nOS: ${fmtRupiah(r.c.totalBakiDebet)}\nCoverage: ${(r.cov*100).toFixed(1)}%`;
+    return `<circle class="priority-pt" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="6" fill="${color}" fill-opacity="0.85" stroke="#fff" stroke-width="1" style="cursor:pointer" data-tip="${escapeHtml(tip)}"></circle>`;
   }).join('');
 
   const axisLines = `
@@ -1781,6 +1782,32 @@ function renderPriorityChart(){
   wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:560px;display:block" xmlns="http://www.w3.org/2000/svg">
     ${gridLines}${axisLines}${cutoffX}${cutoffY}${points}${xLabels}${yLabels}${axisTitles}${cutoffXLabel}${cutoffYLabel}
   </svg>`;
+
+  // Custom tooltip instead of the native SVG <title> element — browser-native
+  // SVG tooltips are inconsistent (slow to appear, sometimes don't fire at all
+   // on dynamically-inserted SVG), so this gives a reliable, instant, styled
+  // tooltip on hover (and on tap for touch devices) instead.
+  const tooltipEl = $('priorityTooltip');
+  const showTip = (target, clientX, clientY) => {
+    tooltipEl.textContent = '';
+    target.dataset.tip.split('\n').forEach((line, i) => {
+      if(i > 0) tooltipEl.appendChild(document.createElement('br'));
+      tooltipEl.appendChild(document.createTextNode(line));
+    });
+    tooltipEl.style.left = (clientX + 14) + 'px';
+    tooltipEl.style.top = (clientY + 14) + 'px';
+    tooltipEl.style.display = 'block';
+  };
+  const hideTip = () => { tooltipEl.style.display = 'none'; };
+  wrap.onmousemove = e => {
+    const t = e.target.closest('.priority-pt');
+    if(t) showTip(t, e.clientX, e.clientY); else hideTip();
+  };
+  wrap.onmouseleave = hideTip;
+  wrap.onclick = e => {
+    const t = e.target.closest('.priority-pt');
+    if(t) showTip(t, e.clientX, e.clientY); else hideTip();
+  };
 }
 
 function renderPriorityTab(){

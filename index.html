@@ -295,6 +295,7 @@ table.data-table .ctr{text-align:center}
 }
 .ws-mode-btn:hover{border-color:var(--brand-mid)}
 .ws-mode-btn.active{background:var(--brand-dark);color:#fff;border-color:var(--brand-dark)}
+.ws-row-saved td{background:#e4f6ee !important;transition:background .3s}
 .ws-cust-row:hover{border-color:var(--brand);background:var(--accent-soft)}
 .row-toggle{
   background:none;border:none;cursor:pointer;color:var(--brand);
@@ -534,8 +535,8 @@ table.data-table td.empty{text-align:center}
 
     <div class="tabs no-print" role="tablist">
       <button class="tab active" data-panel="overview">📊 Ringkasan</button>
-      <button class="tab" data-panel="customers">👤 Customer 360<span class="badge" id="badgeCust">0</span></button>
-      <button class="tab" data-panel="opportunity">Peluang Bisnis<span class="badge" id="badgeOpp">0</span></button>
+      <button class="tab" data-panel="customers">👤 Existing to Bank<span class="badge" id="badgeCust">0</span></button>
+      <button class="tab" data-panel="opportunity">Peluang Pipeline<span class="badge" id="badgeOpp">0</span></button>
       <button class="tab" data-panel="priority">🎯 Prioritas Kunjungan<span class="badge" id="badgePriority">0</span></button>
       <button class="tab" data-panel="wallet">💰 Wallet Share</button>
     </div>
@@ -626,7 +627,7 @@ table.data-table td.empty{text-align:center}
     <div class="tab-panel" id="panel-opportunity">
       <div class="panel">
         <div class="panel-header">
-          <div class="panel-title">Peluang Bisnis</div>
+          <div class="panel-title">Peluang Pipeline</div>
           <div class="panel-actions"><span style="font-size:11.5px;color:var(--text-muted)">Klik kategori untuk melihat daftar nasabah</span></div>
         </div>
         <div class="panel-body">
@@ -765,6 +766,7 @@ table.data-table td.empty{text-align:center}
             <div class="info-banner">Untuk calon nasabah yang belum punya pinjaman/rekening apapun di BRI — isi namanya dan pilih RM pengelolanya, lalu langsung upload SLIK dan rekening koran mereka (bank manapun) untuk mulai analisis wallet share dari nol.</div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:12px">
               <input class="input" id="wsNewProspectName" placeholder="Nama calon nasabah / perusahaan">
+              <select class="select" id="wsNewProspectUker"><option value="">Unit Kerja (opsional)</option></select>
               <select class="select" id="wsNewProspectRmKredit"><option value="">RM Pengelola Kredit (opsional)</option></select>
               <select class="select" id="wsNewProspectRmFt"><option value="">RM Pengelola FT (opsional)</option></select>
             </div>
@@ -792,14 +794,14 @@ table.data-table td.empty{text-align:center}
               <span class="upload-hint" id="koranFileStatus"></span>
             </div>
             <div class="table-wrap" style="margin-bottom:10px">
-              <table class="data-table"><thead><tr><th>Bank</th><th>Jenis</th><th class="num">Saldo Akhir</th><th class="ctr">Hapus</th></tr></thead>
+              <table class="data-table"><thead><tr><th>Bank</th><th>Jenis</th><th>Nama Pemilik Akun</th><th class="num">Saldo Akhir</th><th class="ctr">Hapus</th></tr></thead>
                 <tbody id="wsRekeningBody"></tbody>
               </table>
             </div>
             <button class="btn btn-outline btn-sm" id="btnAddRekeningRow" style="margin-bottom:18px">+ Baris Manual</button>
 
             <div class="detail-section-title">SLIK Fasilitas Aktif</div>
-            <p class="upload-hint" style="margin-bottom:8px">Upload file "Credit Profiling" — sistem otomatis ambil fasilitas dengan Kondisi "Fasilitas Aktif" dan Tujuan Modal Kerja/Investasi/Garansi (Konsumsi &amp; Lainnya bisa ditambahkan secara manual).</p>
+            <p class="upload-hint" style="margin-bottom:8px">Upload file "Credit Profiling" (bisa lebih dari 1 file) — sistem otomatis ambil fasilitas dengan Kondisi "Fasilitas Aktif" untuk Tujuan Modal Kerja/Investasi/Garansi/Konsumtif (yang masih aktif tetap ikut masuk; "Lainnya" bisa ditambahkan manual).</p>
             <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
               <button class="btn btn-light" style="background:var(--brand);color:#fff" id="btnPickSlikFile">📁 Upload File SLIK / Credit Profiling</button>
               <input type="file" id="slikFileInput" accept=".xlsx" multiple style="display:none">
@@ -864,7 +866,7 @@ table.data-table td.empty{text-align:center}
               <button class="btn btn-outline btn-sm" id="btnClearTxFilter">Reset</button>
             </div>
             <div class="table-wrap">
-              <table class="data-table"><thead><tr><th>Tanggal</th><th>Deskripsi</th><th class="ctr">Tipe</th><th class="num">Nominal</th><th>Bank</th><th class="ctr">Hapus</th></tr></thead>
+              <table class="data-table"><thead><tr><th>Tanggal</th><th>Deskripsi</th><th class="ctr">Tipe</th><th class="num">Nominal</th><th>Bank</th><th>Nama Pemilik Akun</th><th class="ctr">Hapus</th></tr></thead>
                 <tbody id="wsTransaksiBody"></tbody>
               </table>
             </div>
@@ -1247,26 +1249,43 @@ function buildCustomers(){
     c.loans.push(row);
   });
 
-  // 2. Tabungan (DI319) — exact CIF match
+  // 2. Tabungan (DI319) — exact CIF match. Rows for a CIF that ISN'T in the
+  // loan-based universe aren't discarded anymore — they're captured into a
+  // separate "funding-only" pool (Pipeline: customers who already have a BRI
+  // funding/merchant relationship but no active credit yet).
   const diagCounts = {DI319:{total:0,matched:0}, DI321:{total:0,matched:0}, CI324:{total:0,matched:0,fuzzy:0}, EDC:{total:0,matched:0}, QRIS:{total:0,matched:0}};
+  const fundingOnly = new Map(); // cif -> {cif, nama, ukerCode, tabungan:[], giro:[], deposito:[], edc:[], qris:[]}
+  function ensureFundingOnly(cif, namaHint, ukerHint){
+    if(!fundingOnly.has(cif)) fundingOnly.set(cif, {cif, nama: namaHint || '(Tanpa Nama)', ukerCode: ukerHint || '-', tabungan:[], giro:[], deposito:[], edc:[], qris:[]});
+    const f = fundingOnly.get(cif);
+    if(namaHint && f.nama === '(Tanpa Nama)') f.nama = namaHint;
+    if(ukerHint && f.ukerCode === '-') f.ukerCode = ukerHint;
+    return f;
+  }
   (State.raw['DI319']||[]).forEach(row => {
     diagCounts.DI319.total++;
     const cif = cleanStr(row.cif);
+    if(!cif) return;
+    row._balance = parseNum(row.balance);
     if(customers.has(cif)){
-      row._balance = parseNum(row.balance);
       customers.get(cif).tabungan.push(row);
       diagCounts.DI319.matched++;
+    } else {
+      ensureFundingOnly(cif, cleanStr(row.shortName), cleanStr(row.ukerCode)).tabungan.push(row);
     }
   });
 
-  // 3. Giro (DI321) — exact CIF match
+  // 3. Giro (DI321) — exact CIF match, same funding-only capture as above.
   (State.raw['DI321']||[]).forEach(row => {
     diagCounts.DI321.total++;
     const cif = cleanStr(row.cif);
+    if(!cif) return;
+    row._balance = parseNum(row.balance);
     if(customers.has(cif)){
-      row._balance = parseNum(row.balance);
       customers.get(cif).giro.push(row);
       diagCounts.DI321.matched++;
+    } else {
+      ensureFundingOnly(cif, cleanStr(row.shortName), cleanStr(row.kodeUker)).giro.push(row);
     }
   });
 
@@ -1291,31 +1310,48 @@ function buildCustomers(){
       diagCounts.CI324.matched++;
       if(fuzzy) diagCounts.CI324.fuzzy++;
     }
+    // No CIF in this file, so an unmatched row can't safely seed a new
+    // funding-only customer (no reliable key) — skipped for that purpose.
   });
 
-  // 5. EDC merchant — exact CIFNO match
+  // 5. EDC merchant — exact CIFNO match, same funding-only capture.
   (State.raw['EDC']||[]).forEach(row => {
     diagCounts.EDC.total++;
     const cif = cleanStr(row.cif);
+    if(!cif) return;
+    row._volume = parseNum(row.akumulasiSalesVolume || row.salesVolume);
+    row._trx = parseNum(row.akumulasiTransaksi || row.jmlTransaksi);
     if(customers.has(cif)){
-      row._volume = parseNum(row.akumulasiSalesVolume || row.salesVolume);
-      row._trx = parseNum(row.akumulasiTransaksi || row.jmlTransaksi);
       customers.get(cif).edc.push(row);
       diagCounts.EDC.matched++;
+    } else {
+      ensureFundingOnly(cif, cleanStr(row.namaMerchant), '').edc.push(row);
     }
   });
 
-  // 6. QRIS merchant — exact CIF match
+  // 6. QRIS merchant — exact CIF match, same funding-only capture.
   (State.raw['QRIS']||[]).forEach(row => {
     diagCounts.QRIS.total++;
     const cif = cleanStr(row.cif);
+    if(!cif) return;
+    row._volume = parseNum(row.akumulasiSvTotal);
+    row._trx = parseNum(row.akumulasiTrxTotal);
     if(customers.has(cif)){
-      row._volume = parseNum(row.akumulasiSvTotal);
-      row._trx = parseNum(row.akumulasiTrxTotal);
       customers.get(cif).qris.push(row);
       diagCounts.QRIS.matched++;
+    } else {
+      ensureFundingOnly(cif, cleanStr(row.namaMerchant), '').qris.push(row);
     }
   });
+
+  // Finalize the funding-only ("Pipeline") universe with aggregate figures,
+  // used by the Peluang Pipeline tab to surface funding/merchant customers
+  // who don't have an active BRI loan yet.
+  fundingOnly.forEach(f => {
+    f.totalFunding = f.tabungan.reduce((s,t)=>s+t._balance,0) + f.giro.reduce((s,t)=>s+t._balance,0);
+    f.totalMerchantVolume = f.edc.reduce((s,t)=>s+t._volume,0) + f.qris.reduce((s,t)=>s+t._volume,0);
+  });
+  State.fundingOnlyCustomers = fundingOnly;
 
   // 7. Compute aggregates & opportunity flags per customer
   customers.forEach(c => {
@@ -1344,6 +1380,10 @@ function buildCustomers(){
     ].filter(v => v && v !== '-'))];
 
     const opp = [];
+    // "Existing to bank" via funding/merchant, but no active credit exposure —
+    // a lending pipeline candidate, distinct from the funding-gap categories
+    // below (which assume the customer already has an active loan).
+    if(c.totalBakiDebet === 0 && (c.tabungan.length>0 || c.giro.length>0 || c.deposito.length>0 || c.edc.length>0 || c.qris.length>0)) opp.push('pipelineKredit');
     if(c.tabungan.length===0) opp.push('noTabungan');
     if(c.giro.length===0) opp.push('noGiro');
     if(c.deposito.length===0 && c.totalFunding > 50000000) opp.push('noDeposito');
@@ -1361,6 +1401,7 @@ function buildCustomers(){
    OPPORTUNITY CATEGORY DEFINITIONS
    ================================================================= */
 const OPP_DEFS = {
+  pipelineKredit: {tag:'PIPELINE KREDIT', label:'Peluang Pipeline Kredit', sub:'Punya funding dan/atau merchant di BRI, tapi tidak ada exposure kredit aktif saat ini.', rec:'Nasabah sudah punya relationship funding di BRI (Tabungan/Giro/Deposito/EDC/QRIS) namun baki debet pinjaman = 0 — kandidat kuat untuk ditawarkan produk kredit (modal kerja/investasi), evaluasi lebih lanjut lewat Wallet Share untuk lihat exposure kredit di bank lain.'},
   noTabungan: {tag:'TABUNGAN', label:'Cross-sell Tabungan', sub:'Nasabah pinjaman belum punya rekening tabungan di BRI.', rec:'Tawarkan pembukaan rekening tabungan sebagai basis penampungan transaksi harian dan monitoring cashflow nasabah.'},
   noGiro:     {tag:'GIRO', label:'Cross-sell Giro', sub:'Nasabah pinjaman belum punya rekening giro.', rec:'Untuk nasabah segmen usaha, giro memudahkan transaksi bisnis dan memperkuat monitoring arus kas pasca pencairan kredit.'},
   noDeposito: {tag:'DEPOSITO', label:'Edukasi Deposito', sub:'Dana funding cukup besar (>Rp 50 juta) namun belum ditempatkan di deposito.', rec:'Dana mengendap besar berpotensi dikonversi menjadi deposito untuk optimalisasi dana pihak ketiga (DPK) dan loyalitas nasabah.'},
@@ -1683,6 +1724,9 @@ function renderCustomerDetail(c){
             <span class="pill ${c.edc.length?'on':''}">EDC ${c.edc.length}</span>
             <span class="pill ${c.qris.length?'on':''}">QRIS ${c.qris.length}</span>
           </div>
+          <div style="margin-top:14px">
+            <button class="btn btn-primary btn-sm" onclick="goToWalletShare('${escapeHtml(c.cif)}')">💰 Cek Wallet Share</button>
+          </div>
         </div>
       </div>
 
@@ -1751,6 +1795,7 @@ function selectOpp(k){
         <div class="detail-field"><span class="lbl">Total Funding</span><span class="val">${fmtRupiah(c.totalFunding)}</span></div>
         <div class="detail-field"><span class="lbl">RM Pengelola Kredit</span><span class="val">${escapeHtml(cleanPn(c.loans[0]?.pnPengelola))}</span></div>
       </div>
+      <div style="margin-top:10px"><button class="btn btn-outline btn-sm" onclick="goToWalletShare('${escapeHtml(c.cif)}')">💰 Cek Wallet Share</button></div>
     </div>
   `).join('');
   $('oppDetail').innerHTML = `
@@ -2092,6 +2137,7 @@ State.wsMode = 'existing';
 function getWalletCustomer(){
   return State.customers.get(State.wallet.cif) || State.wsProspects.get(State.wallet.cif);
 }
+
 function setWsMode(mode){
   State.wsMode = mode;
   $('wsModeExisting').classList.toggle('active', mode==='existing');
@@ -2106,15 +2152,18 @@ window.setWsMode = setWsMode;
    Bank" prospect can still be assigned a proper RM Pengelola Kredit / FT
    from a dropdown, instead of having to type a name freehand. */
 function populateWsProspectRmOptions(){
-  const rmKreditSet = new Set(), rmFtSet = new Set();
+  const rmKreditSet = new Set(), rmFtSet = new Set(), ukerSet = new Set();
   State.customers.forEach(c => {
     if(c.rmPengelola && c.rmPengelola !== '-') rmKreditSet.add(c.rmPengelola);
     (c.rmFundingList||[]).forEach(rm => { if(rm && rm !== '-') rmFtSet.add(rm); });
+    if(c.uker) ukerSet.add(c.uker);
   });
   $('wsNewProspectRmKredit').innerHTML = '<option value="">RM Pengelola Kredit (opsional)</option>' +
     [...rmKreditSet].sort().map(rm => `<option value="${escapeHtml(rm)}">${escapeHtml(rm)}</option>`).join('');
   $('wsNewProspectRmFt').innerHTML = '<option value="">RM Pengelola FT (opsional)</option>' +
     [...rmFtSet].sort().map(rm => `<option value="${escapeHtml(rm)}">${escapeHtml(rm)}</option>`).join('');
+  $('wsNewProspectUker').innerHTML = '<option value="">Unit Kerja (opsional)</option>' +
+    [...ukerSet].sort().map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join('');
 }
 
 function splitPastedLine(line){
@@ -2148,6 +2197,21 @@ function renderWsCustList(){
   `).join('');
 }
 
+/* Jumps from anywhere in the app straight into the Wallet Share tab, already
+   scoped to a specific existing customer — used by the "Cek Wallet Share"
+   button on the Customer 360 detail card and the Pipeline table. */
+function goToWalletShare(cif){
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(x => x.classList.remove('active'));
+  const walletTabBtn = document.querySelector('.tab[data-panel="wallet"]');
+  if(walletTabBtn) walletTabBtn.classList.add('active');
+  $('panel-wallet').classList.add('active');
+  setWsMode('existing');
+  selectWalletCustomer(cif);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+window.goToWalletShare = goToWalletShare;
+
 function selectWalletCustomer(cif){
   if(State.wallet.cif !== cif){
     State.wallet = {cif, rekening:[], fasilitas:[], transaksi:[]};
@@ -2155,9 +2219,9 @@ function selectWalletCustomer(cif){
     // the RM doesn't have to retype what the system already knows.
     const c = State.customers.get(cif);
     if(c){
-      c.tabungan.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:WS_BRI_NAME, jenis:'Tabungan', saldo:t._balance}));
-      c.giro.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:WS_BRI_NAME, jenis:'Giro', saldo:t._balance}));
-      c.deposito.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:WS_BRI_NAME, jenis:'Deposito', saldo:t._principal}));
+      c.tabungan.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:WS_BRI_NAME, jenis:'Tabungan', pemilik:c.nama, saldo:t._balance}));
+      c.giro.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:WS_BRI_NAME, jenis:'Giro', pemilik:c.nama, saldo:t._balance}));
+      c.deposito.forEach(t => State.wallet.rekening.push({id:wsIdCounter++, bank:WS_BRI_NAME, jenis:'Deposito', pemilik:c.nama, saldo:t._principal}));
       c.loans.forEach(l => State.wallet.fasilitas.push({
         id:wsIdCounter++, bank:WS_BRI_NAME, jenis: /investasi/i.test(l.description||'') ? 'Investasi' : 'Modal Kerja',
         atasNama:c.nama, kolek:`${l._kol} - ${KOL_LABEL[l._kol]||''}`, plafon:l._plafon, baki:l._baki,
@@ -2196,18 +2260,20 @@ function renderWsWorkspace(){
 /* ---- 1. Rekening Koran → Aset + Transaksi (one upload does both) ---- */
 function renderWsRekeningTable(){
   $('wsRekeningBody').innerHTML = State.wallet.rekening.map(r => `
-    <tr>
+    <tr id="ws-row-rekening-${r.id}">
       <td><input class="ws-input" list="wsBankDatalist" value="${escapeHtml(r.bank)}" onchange="updateWsRow('rekening',${r.id},'bank',this.value)"></td>
       <td><select class="ws-select" onchange="updateWsRow('rekening',${r.id},'jenis',this.value)">
         ${['Giro','Tabungan','Deposito','QRIS','EDC'].map(j=>`<option value="${j}" ${r.jenis===j?'selected':''}>${j}</option>`).join('')}
       </select></td>
+      <td><input class="ws-input" value="${escapeHtml(r.pemilik||'')}" onchange="updateWsRow('rekening',${r.id},'pemilik',this.value)"></td>
       <td class="num"><input class="ws-input" type="number" value="${r.saldo}" style="text-align:right" onchange="updateWsRow('rekening',${r.id},'saldo',this.value)"></td>
       <td class="ctr"><button class="ws-del" onclick="deleteWsRow('rekening',${r.id})">✕</button></td>
     </tr>
-  `).join('') || '<tr><td colspan="4" class="empty">Belum ada data rekening.</td></tr>';
+  `).join('') || '<tr><td colspan="5" class="empty">Belum ada data rekening.</td></tr>';
 }
 function addWsRekeningRow(){
-  State.wallet.rekening.push({id:wsIdCounter++, bank:WS_BRI_NAME, jenis:'Tabungan', saldo:0});
+  const c = getWalletCustomer();
+  State.wallet.rekening.push({id:wsIdCounter++, bank:WS_BRI_NAME, jenis:'Tabungan', pemilik:c?c.nama:'', saldo:0});
   renderWsRekeningTable(); renderWsDashboard();
 }
 
@@ -2278,10 +2344,53 @@ function parseKoranCounterparty(desc, selfNorm){
    then: every transaction from every file is extracted for Buyer/Supplier,
    and the ending balance of the LAST file in that order becomes the "Saldo
    Akhir" (Aset) row for this bank — editable afterward if it needs correcting. */
+/* Best-effort guess at a customer name from an uploaded filename, used when
+   a "New to Bank" prospect was started without a name — e.g. a file named
+   "SLIK_PT_BUANA_PAKSA.xlsx" or "MUTASI_BP_BRI_BUANA_PAKSA_JAN.xlsx" often
+   has the company name embedded in it. Strips known report-format keywords,
+   numeric IDs/dates, and separators, leaving whatever's left as the guess. */
+/* If the person leaves the "Nama Bank" field blank when uploading rekening
+   koran, try to detect it from the filename itself (bank exports are almost
+   always named after the bank/system, e.g. "BRISIM", "MUTASI_BP_BRI") before
+   falling back to the generic "Bank Lain". */
+function guessBankFromFilename(filename){
+  const up = cleanStr(filename).toUpperCase();
+  if(/\bBRI\b|BRISIM/.test(up)) return WS_BRI_NAME;
+  if(/MANDIRI/.test(up)) return 'PT Bank Mandiri (Persero) Tbk';
+  if(/\bBNI\b/.test(up)) return 'PT Bank Negara Indonesia (Persero) Tbk';
+  if(/\bBTN\b/.test(up)) return 'PT Bank Tabungan Negara (Persero) Tbk';
+  if(/\bBCA\b/.test(up)) return 'PT Bank Central Asia Tbk';
+  if(/CIMB/.test(up)) return 'PT Bank CIMB Niaga Tbk';
+  if(/DANAMON/.test(up)) return 'PT Bank Danamon Indonesia Tbk';
+  return null;
+}
+function guessNameFromFilename(filename){
+  let name = cleanStr(filename).replace(/\.(xlsx|xls|csv)$/i, '');
+  name = name.replace(/^\d{6,}_/, ''); // strip an upload-timestamp prefix if present
+  name = name.replace(/\b(SLIK|MUTASI|BRISIM|BP|BRI|CREDIT|PROFILING|MERGED|REKENING|KORAN|JAN|FEB|MAR|MARET|APR|APRIL|MEI|JUN|JUNI|JUL|JULI|AGT|AGUSTUS|SEP|SEPTEMBER|OKT|OKTOBER|NOV|NOVEMBER|DES|DESEMBER)\b/gi, ' ');
+  name = name.replace(/\d{4,}/g, ' ');
+  name = name.replace(/[_\-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return name;
+}
+/* If the current Wallet Share subject is a "New to Bank" prospect that still
+   has no real name, adopt a name guessed from the first uploaded file so the
+   workspace isn't left showing a blank/placeholder identity. */
+function maybeAdoptNameFromFile(c, filename){
+  if(!c || !String(c.cif).startsWith('PROSPEK-')) return;
+  if(c.nama && c.nama.trim()) return;
+  const guessed = guessNameFromFilename(filename);
+  if(guessed){
+    c.nama = guessed;
+    renderWsWorkspace();
+    showToast(`Nama nasabah diisi otomatis dari nama file: "${guessed}".`, 'info');
+  }
+}
+
 async function handleRekeningKoranUpload(bankNameRaw, fileList){
   const c = getWalletCustomer();
   if(!c) return;
-  const bankName = cleanStr(bankNameRaw) || 'Bank Lain';
+  maybeAdoptNameFromFile(c, fileList[0]?.name);
+  const bankName = cleanStr(bankNameRaw) || guessBankFromFilename(fileList[0]?.name) || 'Bank Lain';
   const selfNorm = normName(c.nama);
   const files = [...fileList].sort((a,b) => a.name.localeCompare(b.name));
   let totalTx = 0, filesOk = 0, lastSaldo = null;
@@ -2292,8 +2401,8 @@ async function handleRekeningKoranUpload(bankNameRaw, fileList){
       if(!rows.length){ showToast(`${file.name}: format tidak dikenali, dilewati.`, 'warning'); continue; }
       rows.forEach(r => {
         const nama = parseKoranCounterparty(r.desc, selfNorm);
-        if(r.credit > 0){ State.wallet.transaksi.push({id:wsIdCounter++, tanggal:r.tanggal, nama, descFull:r.desc, tipe:'Kredit', nominal:r.credit, bank:bankName}); totalTx++; }
-        if(r.debit > 0){ State.wallet.transaksi.push({id:wsIdCounter++, tanggal:r.tanggal, nama, descFull:r.desc, tipe:'Debit', nominal:r.debit, bank:bankName}); totalTx++; }
+        if(r.credit > 0){ State.wallet.transaksi.push({id:wsIdCounter++, tanggal:r.tanggal, nama, descFull:r.desc, tipe:'Kredit', nominal:r.credit, bank:bankName, pemilik:c.nama}); totalTx++; }
+        if(r.debit > 0){ State.wallet.transaksi.push({id:wsIdCounter++, tanggal:r.tanggal, nama, descFull:r.desc, tipe:'Debit', nominal:r.debit, bank:bankName, pemilik:c.nama}); totalTx++; }
       });
       lastSaldo = rows[rows.length-1].saldo;
       filesOk++;
@@ -2305,7 +2414,7 @@ async function handleRekeningKoranUpload(bankNameRaw, fileList){
     // Upsert: replace the existing Giro/Tabungan row for this bank if present, else add a new one.
     const existing = State.wallet.rekening.find(r => cleanStr(r.bank).toUpperCase() === bankName.toUpperCase());
     if(existing) existing.saldo = lastSaldo;
-    else State.wallet.rekening.push({id:wsIdCounter++, bank:bankName, jenis:'Giro', saldo:lastSaldo});
+    else State.wallet.rekening.push({id:wsIdCounter++, bank:bankName, jenis:'Giro', pemilik:c.nama, saldo:lastSaldo});
   }
   $('wsBankNameInput').value = '';
   renderWsRekeningTable(); renderWsTransaksiTable(); renderWsDashboard();
@@ -2316,7 +2425,7 @@ async function handleRekeningKoranUpload(bankNameRaw, fileList){
 /* ---- 2. SLIK → Fasilitas (Liabilities) ---- */
 function renderWsFasilitasTable(){
   $('wsFasilitasBody').innerHTML = State.wallet.fasilitas.map(r => `
-    <tr>
+    <tr id="ws-row-fasilitas-${r.id}">
       <td><input class="ws-input" list="wsBankDatalist" value="${escapeHtml(r.bank)}" onchange="updateWsRow('fasilitas',${r.id},'bank',this.value)"></td>
       <td><select class="ws-select" onchange="updateWsRow('fasilitas',${r.id},'jenis',this.value)">
         ${['Modal Kerja','Investasi','Garansi','Konsumtif'].map(j=>`<option value="${j}" ${r.jenis===j?'selected':''}>${j}</option>`).join('')}
@@ -2364,6 +2473,7 @@ function readSlikExcel(file){
           if(/garansi/i.test(kategori)) jenis = 'Garansi';
           else if(/modal kerja/i.test(tujuan)) jenis = 'Modal Kerja';
           else if(/investasi/i.test(tujuan)) jenis = 'Investasi';
+          else if(/konsumsi/i.test(tujuan)) jenis = 'Konsumtif'; // still imported if Kondisi = Fasilitas Aktif
           if(!jenis) continue;
           out.push({
             bank:cleanStr(row[iBank]), jenis, plafon:parseNum(row[iPlafon]), baki:parseNum(row[iBaki]),
@@ -2379,6 +2489,8 @@ function readSlikExcel(file){
   });
 }
 async function handleSlikFiles(fileList){
+  const c = getWalletCustomer();
+  maybeAdoptNameFromFile(c, fileList[0]?.name);
   let totalAdded = 0, totalReplaced = 0, filesOk = 0;
   for(const file of fileList){
     $('slikFileStatus').textContent = `⏳ Membaca ${file.name}...`;
@@ -2438,7 +2550,7 @@ function renderWsTransaksiTable(){
   if(monthF) rows = rows.filter(r => extractMonthKey(r.tanggal) === monthF);
   if(bankF) rows = rows.filter(r => cleanStr(r.bank) === bankF);
   $('wsTransaksiBody').innerHTML = rows.map(r => `
-    <tr>
+    <tr id="ws-row-transaksi-${r.id}">
       <td><input class="ws-input" value="${escapeHtml(r.tanggal)}" onchange="updateWsRow('transaksi',${r.id},'tanggal',this.value)"></td>
       <td><input class="ws-input" value="${escapeHtml(r.descFull!=null ? r.descFull : r.nama)}" onchange="updateWsRow('transaksi',${r.id},'descFull',this.value)"></td>
       <td class="ctr"><select class="ws-select" style="background:${r.tipe==='Kredit'?'#e4f6ee':'#fdf3dd'};color:${r.tipe==='Kredit'?'#0a7d58':'#a17408'};font-weight:700" onchange="updateWsRow('transaksi',${r.id},'tipe',this.value)">
@@ -2446,12 +2558,14 @@ function renderWsTransaksiTable(){
       </select></td>
       <td class="num"><input class="ws-input" type="number" value="${r.nominal}" style="text-align:right" onchange="updateWsRow('transaksi',${r.id},'nominal',this.value)"></td>
       <td><input class="ws-input" list="wsBankDatalist" value="${escapeHtml(r.bank||'')}" onchange="updateWsRow('transaksi',${r.id},'bank',this.value)"></td>
+      <td><input class="ws-input" value="${escapeHtml(r.pemilik||'')}" onchange="updateWsRow('transaksi',${r.id},'pemilik',this.value)"></td>
       <td class="ctr"><button class="ws-del" onclick="deleteWsRow('transaksi',${r.id})">✕</button></td>
     </tr>
-  `).join('') || '<tr><td colspan="6" class="empty">Belum ada data transaksi yang cocok dengan filter.</td></tr>';
+  `).join('') || '<tr><td colspan="7" class="empty">Belum ada data transaksi yang cocok dengan filter.</td></tr>';
 }
 function addWsTransaksiRow(){
-  State.wallet.transaksi.push({id:wsIdCounter++, tanggal:'', nama:'', descFull:'', tipe:'Kredit', nominal:0, bank:WS_BRI_NAME});
+  const c = getWalletCustomer();
+  State.wallet.transaksi.push({id:wsIdCounter++, tanggal:'', nama:'', descFull:'', tipe:'Kredit', nominal:0, bank:WS_BRI_NAME, pemilik:c?c.nama:''});
   renderWsTransaksiTable(); renderWsDashboard();
 }
 
@@ -2461,6 +2575,14 @@ function updateWsRow(section, id, field, value){
   if(!row) return;
   row[field] = ['saldo','plafon','baki','nominal'].includes(field) ? parseNum(value) : value;
   renderWsDashboard();
+  // Brief visual confirmation that the edit was captured — since editing a
+  // cell doesn't rebuild the table (so focus/typing isn't disrupted), it can
+  // otherwise be unclear that the value was actually saved into memory.
+  const rowEl = document.getElementById(`ws-row-${section}-${id}`);
+  if(rowEl){
+    rowEl.classList.add('ws-row-saved');
+    setTimeout(() => rowEl.classList.remove('ws-row-saved'), 900);
+  }
 }
 window.updateWsRow = updateWsRow;
 function deleteWsRow(section, id){
@@ -2821,21 +2943,23 @@ window.closeWsTxModal = closeWsTxModal;
 $('wsCustSearch').addEventListener('input', renderWsCustList);
 $('btnStartProspect').addEventListener('click', () => {
   const nama = cleanStr($('wsNewProspectName').value);
-  if(!nama){ showToast('Isi nama calon nasabah dulu.', 'warning'); return; }
+  const uker = $('wsNewProspectUker').value;
   const rmKredit = $('wsNewProspectRmKredit').value;
   const rmFt = $('wsNewProspectRmFt').value;
   const cif = 'PROSPEK-' + Date.now();
   State.wsProspects.set(cif, {
-    cif, nama, uker:'-', kanwil:'-', kanca:'-', totalBakiDebet:0, worstKol:1,
+    cif, nama, uker: uker || '-', kanwil:'-', kanca:'-', totalBakiDebet:0, worstKol:1,
     loans: rmKredit ? [{pnPengelola:rmKredit}] : [],
     tabungan:[], giro:[], deposito:[], edc:[], qris:[],
     rmFundingList: rmFt ? [rmFt] : [],
   });
   $('wsNewProspectName').value = '';
+  $('wsNewProspectUker').value = '';
   $('wsNewProspectRmKredit').value = '';
   $('wsNewProspectRmFt').value = '';
   selectWalletCustomer(cif);
-  showToast(`Mulai analisis wallet share untuk "${nama}" (nasabah baru).`, 'success');
+  if(nama) showToast(`Mulai analisis wallet share untuk "${nama}" (nasabah baru).`, 'success');
+  else showToast('Mulai analisis nasabah baru — nama akan diisi otomatis dari file pertama yang diupload.', 'info');
 });
 $('wsTxSearch').addEventListener('input', renderWsTransaksiTable);
 $('wsTxMonthFilter').addEventListener('change', renderWsTransaksiTable);

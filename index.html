@@ -574,17 +574,6 @@ table.data-table td.empty{text-align:center}
             </table>
           </div>
         </div>
-        <div class="chart-card" style="position:relative">
-          <h3>OS vs Funding Coverage — Sebaran Nasabah</h3>
-          <div id="overviewScatterWrap" style="width:100%;overflow-x:auto"></div>
-          <div id="overviewScatterTooltip" style="position:fixed;pointer-events:none;display:none;z-index:1000;background:var(--brand-darker);color:#fff;padding:7px 11px;border-radius:6px;font-size:12px;line-height:1.5;box-shadow:0 4px 14px rgba(0,0,0,.3);white-space:nowrap"></div>
-          <div class="product-pills" style="margin-top:10px">
-            <span class="pill" style="background:#d64545;color:#fff">🔴 VISIT</span>
-            <span class="pill" style="background:#e07b1f;color:#fff">🟠 MAINTAIN</span>
-            <span class="pill" style="background:#d69a12;color:#fff">🟡 DEVELOP</span>
-            <span class="pill" style="background:#0a9d6e;color:#fff">🟢 MONITOR</span>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -1251,6 +1240,10 @@ function buildCustomers(){
   const loanRows = State.raw['LW321'] || [];
 
   // 1. Base universe: every CIF present in LW321
+  const ukerCodeMap = new Map(); // KODE_UKER -> {kanwil, kanca, uker} — used below to correctly
+                                  // place funding-only customers into the same branch hierarchy
+                                  // instead of leaving them stuck with a placeholder that would
+                                  // never match any real branch filter.
   loanRows.forEach(row => {
     const cif = cleanStr(row.cif);
     if(!cif) return;
@@ -1268,6 +1261,10 @@ function buildCustomers(){
     row._kol = parseInt(row.kolAdk,10) || 1;
     row._tunggakan = parseNum(row.tunggakanPokok) + parseNum(row.tunggakanBunga) + parseNum(row.tunggakanPinalti);
     c.loans.push(row);
+    const kodeUker = cleanStr(row.kodeUker);
+    if(kodeUker && !ukerCodeMap.has(kodeUker)){
+      ukerCodeMap.set(kodeUker, {kanwil:c.kanwil, kanca:c.kanca, uker:c.uker});
+    }
   });
 
   // 2. Tabungan (DI319) — exact CIF match. Rows for a CIF that ISN'T in the
@@ -1379,10 +1376,16 @@ function buildCustomers(){
   // and surface in Peluang Pipeline, Customer 360, filters, etc. — capturing
   // them into a side map alone (as before) never actually exposed them
   // anywhere in the app, which is exactly the bug being fixed here.
+  // Branch is looked up via KODE_UKER against the map built from LW321 above
+  // (DI319/DI321 use the same branch-code system) so these customers land in
+  // their real Kanwil/Kanca and actually show up under the normal branch
+  // filter — leaving them on a placeholder like '-' would silently hide them
+  // from every default-scoped view, which is the bug being fixed here too.
   fundingOnly.forEach((f, cif) => {
     if(customers.has(cif)) return;
+    const branch = ukerCodeMap.get(cleanStr(f.ukerCode)) || {};
     customers.set(cif, {
-      cif, nama: f.nama, kanwil:'-', kanca:'-', uker: f.ukerCode || '-',
+      cif, nama: f.nama, kanwil: branch.kanwil || '', kanca: branch.kanca || '', uker: branch.uker || f.ukerCode || '',
       loans:[], tabungan:f.tabungan, giro:f.giro, deposito:[], edc:f.edc, qris:f.qris,
     });
   });
@@ -1417,7 +1420,11 @@ function buildCustomers(){
     // "Existing to bank" via funding/merchant, but no active credit exposure —
     // a lending pipeline candidate, distinct from the funding-gap categories
     // below (which assume the customer already has an active loan).
-    if(c.totalBakiDebet === 0 && (c.tabungan.length>0 || c.giro.length>0 || c.deposito.length>0 || c.edc.length>0 || c.qris.length>0)) opp.push('pipelineKredit');
+    // "Existing to bank" via funding/merchant, with NO loan record at all in
+    // LW321 (c.loans.length===0) — not just a paid-off/zero-balance loan,
+    // which is a different situation (they've already been a credit customer
+    // before). This is a genuine never-had-credit funding-only relationship.
+    if(c.loans.length === 0 && (c.tabungan.length>0 || c.giro.length>0 || c.deposito.length>0 || c.edc.length>0 || c.qris.length>0)) opp.push('pipelineKredit');
     if(c.tabungan.length===0) opp.push('noTabungan');
     if(c.giro.length===0) opp.push('noGiro');
     if(c.deposito.length===0 && c.totalFunding > 50000000) opp.push('noDeposito');
@@ -1436,7 +1443,7 @@ function buildCustomers(){
    OPPORTUNITY CATEGORY DEFINITIONS
    ================================================================= */
 const OPP_DEFS = {
-  pipelineKredit: {tag:'PIPELINE KREDIT', label:'Peluang Pipeline Kredit', sub:'Punya funding dan/atau merchant di BRI, tapi tidak ada exposure kredit aktif saat ini.', rec:'Nasabah sudah punya relationship funding di BRI (Tabungan/Giro/Deposito/EDC/QRIS) namun baki debet pinjaman = 0 — kandidat kuat untuk ditawarkan produk kredit (modal kerja/investasi), evaluasi lebih lanjut lewat Wallet Share untuk lihat exposure kredit di bank lain.'},
+  pipelineKredit: {tag:'PIPELINE KREDIT', label:'Peluang Pipeline Kredit', sub:'Punya funding dan/atau merchant di BRI, tapi belum pernah punya fasilitas kredit di BRI.', rec:'Nasabah sudah punya relationship funding di BRI (Tabungan/Giro/Deposito/EDC/QRIS) namun belum pernah tercatat punya pinjaman — kandidat kuat untuk ditawarkan produk kredit (modal kerja/investasi), evaluasi lebih lanjut lewat Wallet Share untuk lihat exposure kredit di bank lain.'},
   noTabungan: {tag:'TABUNGAN', label:'Cross-sell Tabungan', sub:'Nasabah pinjaman belum punya rekening tabungan di BRI.', rec:'Tawarkan pembukaan rekening tabungan sebagai basis penampungan transaksi harian dan monitoring cashflow nasabah.'},
   noGiro:     {tag:'GIRO', label:'Cross-sell Giro', sub:'Nasabah pinjaman belum punya rekening giro.', rec:'Untuk nasabah segmen usaha, giro memudahkan transaksi bisnis dan memperkuat monitoring arus kas pasca pencairan kredit.'},
   noDeposito: {tag:'DEPOSITO', label:'Edukasi Deposito', sub:'Dana funding cukup besar (>Rp 50 juta) namun belum ditempatkan di deposito.', rec:'Dana mengendap besar berpotensi dikonversi menjadi deposito untuk optimalisasi dana pihak ketiga (DPK) dan loyalitas nasabah.'},
@@ -3142,89 +3149,6 @@ function renderCharts(){
   $('coverageDistBody').innerHTML = Object.keys(covBuckets).map(k =>
     `<tr><td>${k}</td><td class="num">${covBuckets[k]}</td></tr>`
   ).join('');
-
-  renderOverviewPriorityScatter();
-}
-
-/* Same WHO matrix as the Priority Kunjungan tab (same quadrant cut-offs,
-   same colors), but surfaced right on the Ringkasan overview — X axis here
-   is Funding Coverage, Y axis is OS, per the requested layout, so an RM can
-   see the concentration of customers (e.g. a cluster of high-OS + near-zero
-   coverage) at a glance without switching tabs. Recomputes the quadrant
-   data defensively rather than trusting it was already computed by the
-   Priority tab's own render path, so this never depends on tab visit order. */
-function renderOverviewPriorityScatter(){
-  computePriorityData();
-  const p = State.priority;
-  const wrap = $('overviewScatterWrap');
-  if(!wrap) return;
-  if(!p.list.length){
-    wrap.innerHTML = '<div class="empty">Tidak ada nasabah dengan Baki Debet aktif pada scope ini.</div>';
-    return;
-  }
-
-  const W = 700, H = 380;
-  const padL = 60, padR = 20, padT = 20, padB = 50;
-  const plotW = W - padL - padR, plotH = H - padT - padB;
-  const maxCov = Math.max(...p.list.map(r=>r.cov*100), p.p25Cov*100, 10) * 1.1;
-  const maxOS = Math.max(...p.list.map(r=>r.c.totalBakiDebet), p.p75OS, 1) * 1.05;
-
-  const xPix = cov => padL + (cov/maxCov) * plotW;
-  const yPix = os => padT + (1 - os/maxOS) * plotH;
-
-  const xTicks = [0,1,2,3,4].map(i => maxCov * i/4);
-  const yTicks = [0,1,2,3,4].map(i => maxOS * i/4);
-  const gridLines = [
-    ...xTicks.map(t => `<line x1="${xPix(t)}" y1="${padT}" x2="${xPix(t)}" y2="${padT+plotH}" stroke="#eef1f4" stroke-width="1"/>`),
-    ...yTicks.map(t => `<line x1="${padL}" y1="${yPix(t)}" x2="${padL+plotW}" y2="${yPix(t)}" stroke="#eef1f4" stroke-width="1"/>`),
-  ].join('');
-  const xLabels = xTicks.map(t => `<text x="${xPix(t)}" y="${padT+plotH+18}" font-size="10.5" fill="#5a7691" text-anchor="middle">${t.toFixed(0)}%</text>`).join('');
-  const yLabels = yTicks.map(t => `<text x="${padL-8}" y="${yPix(t)+4}" font-size="10.5" fill="#5a7691" text-anchor="end">${(t/1e6).toFixed(0)}jt</text>`).join('');
-
-  const cutoffX = `<line x1="${xPix(p.p25Cov*100)}" y1="${padT}" x2="${xPix(p.p25Cov*100)}" y2="${padT+plotH}" stroke="#8ba6bd" stroke-width="1.5" stroke-dasharray="6,4"/>`;
-  const cutoffY = `<line x1="${padL}" y1="${yPix(p.p75OS)}" x2="${padL+plotW}" y2="${yPix(p.p75OS)}" stroke="#8ba6bd" stroke-width="1.5" stroke-dasharray="6,4"/>`;
-
-  const points = p.list.map(r => {
-    const cx = xPix(r.cov*100), cy = yPix(r.c.totalBakiDebet);
-    const color = QUAD_COLOR[r.quad] || '#8ba6bd';
-    const tip = `${r.c.nama}\nOS: ${fmtRupiah(r.c.totalBakiDebet)}\nCoverage: ${(r.cov*100).toFixed(1)}%`;
-    return `<circle class="ov-pt" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="5" fill="${color}" fill-opacity="0.85" stroke="#fff" stroke-width="1" style="cursor:pointer" data-tip="${escapeHtml(tip)}"></circle>`;
-  }).join('');
-
-  const axisLines = `
-    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+plotH}" stroke="#0b2540" stroke-width="1.2"/>
-    <line x1="${padL}" y1="${padT+plotH}" x2="${padL+plotW}" y2="${padT+plotH}" stroke="#0b2540" stroke-width="1.2"/>
-  `;
-  const axisTitles = `
-    <text x="${padL+plotW/2}" y="${H-8}" font-size="12" fill="#0b2540" font-weight="700" text-anchor="middle">Funding Coverage (%)</text>
-    <text x="14" y="${padT+plotH/2}" font-size="12" fill="#0b2540" font-weight="700" text-anchor="middle" transform="rotate(-90 14 ${padT+plotH/2})">Baki Debet / OS (Rp)</text>
-  `;
-
-  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:480px;display:block" xmlns="http://www.w3.org/2000/svg">
-    ${gridLines}${axisLines}${cutoffX}${cutoffY}${points}${xLabels}${yLabels}${axisTitles}
-  </svg>`;
-
-  const tooltipEl = $('overviewScatterTooltip');
-  const showTip = (target, clientX, clientY) => {
-    tooltipEl.textContent = '';
-    target.dataset.tip.split('\n').forEach((line, i) => {
-      if(i > 0) tooltipEl.appendChild(document.createElement('br'));
-      tooltipEl.appendChild(document.createTextNode(line));
-    });
-    tooltipEl.style.left = (clientX + 14) + 'px';
-    tooltipEl.style.top = (clientY + 14) + 'px';
-    tooltipEl.style.display = 'block';
-  };
-  const hideTip = () => { tooltipEl.style.display = 'none'; };
-  wrap.onmousemove = e => {
-    const t = e.target.closest('.ov-pt');
-    if(t) showTip(t, e.clientX, e.clientY); else hideTip();
-  };
-  wrap.onmouseleave = hideTip;
-  wrap.onclick = e => {
-    const t = e.target.closest('.ov-pt');
-    if(t) showTip(t, e.clientX, e.clientY); else hideTip();
-  };
 }
 
 /* ===================================================================

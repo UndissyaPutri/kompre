@@ -536,7 +536,7 @@ table.data-table td.empty{text-align:center}
     <div class="tabs no-print" role="tablist">
       <button class="tab active" data-panel="overview">📊 Ringkasan</button>
       <button class="tab" data-panel="customers">👤 Existing to Bank<span class="badge" id="badgeCust">0</span></button>
-      <button class="tab" data-panel="opportunity">Peluang Pipeline<span class="badge" id="badgeOpp">0</span></button>
+      <button class="tab" data-panel="opportunity">Peluang Bisnis<span class="badge" id="badgeOpp">0</span></button>
       <button class="tab" data-panel="priority">🎯 Prioritas Kunjungan<span class="badge" id="badgePriority">0</span></button>
       <button class="tab" data-panel="wallet">💰 Wallet Share</button>
     </div>
@@ -627,7 +627,7 @@ table.data-table td.empty{text-align:center}
     <div class="tab-panel" id="panel-opportunity">
       <div class="panel">
         <div class="panel-header">
-          <div class="panel-title">Peluang Pipeline</div>
+          <div class="panel-title">Peluang Bisnis</div>
           <div class="panel-actions"><span style="font-size:11.5px;color:var(--text-muted)">Klik kategori untuk melihat daftar nasabah</span></div>
         </div>
         <div class="panel-body">
@@ -939,7 +939,17 @@ const State = {
 };
 
 /* Returns the customer universe after applying the top global Kanwil/Kanca/Uker/RM filter */
+/* Memoized per filter-state + customer-set-version. Six or more render
+   functions each call this once per filter change (renderStats,
+   renderPriorityTab, applyCustFilters, renderOppGrid, renderCharts...) —
+   without caching, that's the full customer Map re-filtered from scratch
+   that many times on every single click, which is the main thing that made
+   the app feel heavy as the dataset (and now the merged funding-only
+   customers) grew. Cache is invalidated whenever the filter changes or the
+   underlying customer set is rebuilt (buildCustomers bumps the version). */
 function getScopedCustomers(){
+  const key = (State.customersVersion||0) + '|' + JSON.stringify(State.globalFilter);
+  if(State._scopedCache && State._scopedCacheKey === key) return State._scopedCache;
   let list = [...State.customers.values()];
   const {kanwil, kanca, uker, rm, rmFt} = State.globalFilter;
   if(kanwil) list = list.filter(c => c.kanwil === kanwil);
@@ -947,6 +957,8 @@ function getScopedCustomers(){
   if(uker) list = list.filter(c => c.uker === uker);
   if(rm) list = list.filter(c => c.rmPengelola === rm);
   if(rmFt) list = list.filter(c => c.rmFundingList.includes(rmFt));
+  State._scopedCache = list;
+  State._scopedCacheKey = key;
   return list;
 }
 
@@ -1240,10 +1252,6 @@ function buildCustomers(){
   const loanRows = State.raw['LW321'] || [];
 
   // 1. Base universe: every CIF present in LW321
-  const ukerCodeMap = new Map(); // KODE_UKER -> {kanwil, kanca, uker} — used below to correctly
-                                  // place funding-only customers into the same branch hierarchy
-                                  // instead of leaving them stuck with a placeholder that would
-                                  // never match any real branch filter.
   loanRows.forEach(row => {
     const cif = cleanStr(row.cif);
     if(!cif) return;
@@ -1261,49 +1269,30 @@ function buildCustomers(){
     row._kol = parseInt(row.kolAdk,10) || 1;
     row._tunggakan = parseNum(row.tunggakanPokok) + parseNum(row.tunggakanBunga) + parseNum(row.tunggakanPinalti);
     c.loans.push(row);
-    const kodeUker = cleanStr(row.kodeUker);
-    if(kodeUker && !ukerCodeMap.has(kodeUker)){
-      ukerCodeMap.set(kodeUker, {kanwil:c.kanwil, kanca:c.kanca, uker:c.uker});
-    }
   });
 
-  // 2. Tabungan (DI319) — exact CIF match. Rows for a CIF that ISN'T in the
-  // loan-based universe aren't discarded anymore — they're captured into a
-  // separate "funding-only" pool (Pipeline: customers who already have a BRI
-  // funding/merchant relationship but no active credit yet).
+  // 2. Tabungan (DI319) — exact CIF match. Rows for a CIF that isn't in the
+  // loan-based universe are simply skipped (LW321/pinjaman is the anchor for
+  // the whole app's customer universe).
   const diagCounts = {DI319:{total:0,matched:0}, DI321:{total:0,matched:0}, CI324:{total:0,matched:0,fuzzy:0}, EDC:{total:0,matched:0}, QRIS:{total:0,matched:0}};
-  const fundingOnly = new Map(); // cif -> {cif, nama, ukerCode, tabungan:[], giro:[], deposito:[], edc:[], qris:[]}
-  function ensureFundingOnly(cif, namaHint, ukerHint){
-    if(!fundingOnly.has(cif)) fundingOnly.set(cif, {cif, nama: namaHint || '(Tanpa Nama)', ukerCode: ukerHint || '-', tabungan:[], giro:[], deposito:[], edc:[], qris:[]});
-    const f = fundingOnly.get(cif);
-    if(namaHint && f.nama === '(Tanpa Nama)') f.nama = namaHint;
-    if(ukerHint && f.ukerCode === '-') f.ukerCode = ukerHint;
-    return f;
-  }
   (State.raw['DI319']||[]).forEach(row => {
     diagCounts.DI319.total++;
     const cif = cleanStr(row.cif);
-    if(!cif) return;
-    row._balance = parseNum(row.balance);
     if(customers.has(cif)){
+      row._balance = parseNum(row.balance);
       customers.get(cif).tabungan.push(row);
       diagCounts.DI319.matched++;
-    } else {
-      ensureFundingOnly(cif, cleanStr(row.shortName), cleanStr(row.ukerCode)).tabungan.push(row);
     }
   });
 
-  // 3. Giro (DI321) — exact CIF match, same funding-only capture as above.
+  // 3. Giro (DI321) — exact CIF match
   (State.raw['DI321']||[]).forEach(row => {
     diagCounts.DI321.total++;
     const cif = cleanStr(row.cif);
-    if(!cif) return;
-    row._balance = parseNum(row.balance);
     if(customers.has(cif)){
+      row._balance = parseNum(row.balance);
       customers.get(cif).giro.push(row);
       diagCounts.DI321.matched++;
-    } else {
-      ensureFundingOnly(cif, cleanStr(row.shortName), cleanStr(row.kodeUker)).giro.push(row);
     }
   });
 
@@ -1328,66 +1317,30 @@ function buildCustomers(){
       diagCounts.CI324.matched++;
       if(fuzzy) diagCounts.CI324.fuzzy++;
     }
-    // No CIF in this file, so an unmatched row can't safely seed a new
-    // funding-only customer (no reliable key) — skipped for that purpose.
   });
 
-  // 5. EDC merchant — exact CIFNO match, same funding-only capture.
+  // 5. EDC merchant — exact CIFNO match
   (State.raw['EDC']||[]).forEach(row => {
     diagCounts.EDC.total++;
     const cif = cleanStr(row.cif);
-    if(!cif) return;
-    row._volume = parseNum(row.akumulasiSalesVolume || row.salesVolume);
-    row._trx = parseNum(row.akumulasiTransaksi || row.jmlTransaksi);
     if(customers.has(cif)){
+      row._volume = parseNum(row.akumulasiSalesVolume || row.salesVolume);
+      row._trx = parseNum(row.akumulasiTransaksi || row.jmlTransaksi);
       customers.get(cif).edc.push(row);
       diagCounts.EDC.matched++;
-    } else {
-      ensureFundingOnly(cif, cleanStr(row.namaMerchant), '').edc.push(row);
     }
   });
 
-  // 6. QRIS merchant — exact CIF match, same funding-only capture.
+  // 6. QRIS merchant — exact CIF match
   (State.raw['QRIS']||[]).forEach(row => {
     diagCounts.QRIS.total++;
     const cif = cleanStr(row.cif);
-    if(!cif) return;
-    row._volume = parseNum(row.akumulasiSvTotal);
-    row._trx = parseNum(row.akumulasiTrxTotal);
     if(customers.has(cif)){
+      row._volume = parseNum(row.akumulasiSvTotal);
+      row._trx = parseNum(row.akumulasiTrxTotal);
       customers.get(cif).qris.push(row);
       diagCounts.QRIS.matched++;
-    } else {
-      ensureFundingOnly(cif, cleanStr(row.namaMerchant), '').qris.push(row);
     }
-  });
-
-  // Finalize the funding-only ("Pipeline") universe with aggregate figures,
-  // used by the Peluang Pipeline tab to surface funding/merchant customers
-  // who don't have an active BRI loan yet.
-  fundingOnly.forEach(f => {
-    f.totalFunding = f.tabungan.reduce((s,t)=>s+t._balance,0) + f.giro.reduce((s,t)=>s+t._balance,0);
-    f.totalMerchantVolume = f.edc.reduce((s,t)=>s+t._volume,0) + f.qris.reduce((s,t)=>s+t._volume,0);
-  });
-  State.fundingOnlyCustomers = fundingOnly;
-
-  // Merge the funding-only pool into the real customer universe so they
-  // actually flow through the same aggregate/opportunity computation below
-  // and surface in Peluang Pipeline, Customer 360, filters, etc. — capturing
-  // them into a side map alone (as before) never actually exposed them
-  // anywhere in the app, which is exactly the bug being fixed here.
-  // Branch is looked up via KODE_UKER against the map built from LW321 above
-  // (DI319/DI321 use the same branch-code system) so these customers land in
-  // their real Kanwil/Kanca and actually show up under the normal branch
-  // filter — leaving them on a placeholder like '-' would silently hide them
-  // from every default-scoped view, which is the bug being fixed here too.
-  fundingOnly.forEach((f, cif) => {
-    if(customers.has(cif)) return;
-    const branch = ukerCodeMap.get(cleanStr(f.ukerCode)) || {};
-    customers.set(cif, {
-      cif, nama: f.nama, kanwil: branch.kanwil || '', kanca: branch.kanca || '', uker: branch.uker || f.ukerCode || '',
-      loans:[], tabungan:f.tabungan, giro:f.giro, deposito:[], edc:f.edc, qris:f.qris,
-    });
   });
 
   // 7. Compute aggregates & opportunity flags per customer
@@ -1417,14 +1370,6 @@ function buildCustomers(){
     ].filter(v => v && v !== '-'))];
 
     const opp = [];
-    // "Existing to bank" via funding/merchant, but no active credit exposure —
-    // a lending pipeline candidate, distinct from the funding-gap categories
-    // below (which assume the customer already has an active loan).
-    // "Existing to bank" via funding/merchant, with NO loan record at all in
-    // LW321 (c.loans.length===0) — not just a paid-off/zero-balance loan,
-    // which is a different situation (they've already been a credit customer
-    // before). This is a genuine never-had-credit funding-only relationship.
-    if(c.loans.length === 0 && (c.tabungan.length>0 || c.giro.length>0 || c.deposito.length>0 || c.edc.length>0 || c.qris.length>0)) opp.push('pipelineKredit');
     if(c.tabungan.length===0) opp.push('noTabungan');
     if(c.giro.length===0) opp.push('noGiro');
     if(c.deposito.length===0 && c.totalFunding > 50000000) opp.push('noDeposito');
@@ -1436,6 +1381,7 @@ function buildCustomers(){
   });
 
   State.customers = customers;
+  State.customersVersion = (State.customersVersion||0) + 1;
   State.diag = diagCounts;
 }
 
@@ -1443,7 +1389,6 @@ function buildCustomers(){
    OPPORTUNITY CATEGORY DEFINITIONS
    ================================================================= */
 const OPP_DEFS = {
-  pipelineKredit: {tag:'PIPELINE KREDIT', label:'Peluang Pipeline Kredit', sub:'Punya funding dan/atau merchant di BRI, tapi belum pernah punya fasilitas kredit di BRI.', rec:'Nasabah sudah punya relationship funding di BRI (Tabungan/Giro/Deposito/EDC/QRIS) namun belum pernah tercatat punya pinjaman — kandidat kuat untuk ditawarkan produk kredit (modal kerja/investasi), evaluasi lebih lanjut lewat Wallet Share untuk lihat exposure kredit di bank lain.'},
   noTabungan: {tag:'TABUNGAN', label:'Cross-sell Tabungan', sub:'Nasabah pinjaman belum punya rekening tabungan di BRI.', rec:'Tawarkan pembukaan rekening tabungan sebagai basis penampungan transaksi harian dan monitoring cashflow nasabah.'},
   noGiro:     {tag:'GIRO', label:'Cross-sell Giro', sub:'Nasabah pinjaman belum punya rekening giro.', rec:'Untuk nasabah segmen usaha, giro memudahkan transaksi bisnis dan memperkuat monitoring arus kas pasca pencairan kredit.'},
   noDeposito: {tag:'DEPOSITO', label:'Edukasi Deposito', sub:'Dana funding cukup besar (>Rp 50 juta) namun belum ditempatkan di deposito.', rec:'Dana mengendap besar berpotensi dikonversi menjadi deposito untuk optimalisasi dana pihak ketiga (DPK) dan loyalitas nasabah.'},
@@ -2295,7 +2240,7 @@ function renderWsCustList(){
 
 /* Jumps from anywhere in the app straight into the Wallet Share tab, already
    scoped to a specific existing customer — used by the "Cek Wallet Share"
-   button on the Customer 360 detail card and the Pipeline table. */
+   button on the Customer 360 detail card and the Peluang Bisnis table. */
 function goToWalletShare(cif){
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(x => x.classList.remove('active'));
@@ -3081,8 +3026,13 @@ $('koranFileInput').addEventListener('change', () => {
    CHARTS
    ================================================================= */
 function renderCharts(){
-  Object.values(State.charts).forEach(c => { try{ c.destroy(); }catch(e){} });
-  State.charts = {};
+  // Only destroy this function's own charts (kol/produk/topDebet/topFunding/
+  // segmen/coverageDist) — destroying the whole State.charts object also
+  // wiped out the Wallet Share charts (wsAset/wsLiab/wsPenyaluran/
+  // wsPembelian) every single time any filter changed anywhere in the app,
+  // forcing an unnecessary rebuild of that tab's charts too.
+  const OVERVIEW_CHART_KEYS = ['kol','produk','topDebet','topFunding','segmen','coverageDist'];
+  OVERVIEW_CHART_KEYS.forEach(k => { if(State.charts[k]){ try{ State.charts[k].destroy(); }catch(e){} delete State.charts[k]; } });
   const custs = getScopedCustomers();
   const CBLUE = ['#0856c3','#2e78d6','#5a9bdf','#a9e1ee','#d4f0f7'];
 
@@ -3319,6 +3269,7 @@ function generateDummyCustomers(){
 
 function loadDummyDashboard(){
   State.customers = new Map(generateDummyCustomers().map(c => [c.cif, c]));
+  State.customersVersion = (State.customersVersion||0) + 1;
   populateGlobalFilterOptions();
   applyDefaultRegionSelection('Semarang', 'Brigjen Sudiarto', 'Brigjen Sudiarto');
   applyGlobalFilter();

@@ -574,6 +574,17 @@ table.data-table td.empty{text-align:center}
             </table>
           </div>
         </div>
+        <div class="chart-card" style="position:relative">
+          <h3>OS vs Funding Coverage — Sebaran Nasabah</h3>
+          <div id="overviewScatterWrap" style="width:100%;overflow-x:auto"></div>
+          <div id="overviewScatterTooltip" style="position:fixed;pointer-events:none;display:none;z-index:1000;background:var(--brand-darker);color:#fff;padding:7px 11px;border-radius:6px;font-size:12px;line-height:1.5;box-shadow:0 4px 14px rgba(0,0,0,.3);white-space:nowrap"></div>
+          <div class="product-pills" style="margin-top:10px">
+            <span class="pill" style="background:#d64545;color:#fff">🔴 VISIT</span>
+            <span class="pill" style="background:#e07b1f;color:#fff">🟠 MAINTAIN</span>
+            <span class="pill" style="background:#d69a12;color:#fff">🟡 DEVELOP</span>
+            <span class="pill" style="background:#0a9d6e;color:#fff">🟢 MONITOR</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -885,6 +896,16 @@ table.data-table td.empty{text-align:center}
         <button onclick="closeWsTxModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-soft);line-height:1">✕</button>
       </div>
       <div id="wsTxModalBody"></div>
+    </div>
+  </div>
+
+  <div id="statsDetailModal" style="display:none;position:fixed;inset:0;background:rgba(11,37,64,.55);z-index:2000;align-items:center;justify-content:center;padding:20px">
+    <div style="background:#fff;border-radius:var(--radius);max-width:520px;width:100%;max-height:80vh;overflow:auto;padding:22px;box-shadow:var(--shadow-lg)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h3 id="statsDetailModalTitle" style="font-size:15px;color:var(--brand-darker)"></h3>
+        <button onclick="closeStatsDetailModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-soft);line-height:1">✕</button>
+      </div>
+      <div id="statsDetailModalBody"></div>
     </div>
   </div>
 </main>
@@ -1353,6 +1374,19 @@ function buildCustomers(){
   });
   State.fundingOnlyCustomers = fundingOnly;
 
+  // Merge the funding-only pool into the real customer universe so they
+  // actually flow through the same aggregate/opportunity computation below
+  // and surface in Peluang Pipeline, Customer 360, filters, etc. — capturing
+  // them into a side map alone (as before) never actually exposed them
+  // anywhere in the app, which is exactly the bug being fixed here.
+  fundingOnly.forEach((f, cif) => {
+    if(customers.has(cif)) return;
+    customers.set(cif, {
+      cif, nama: f.nama, kanwil:'-', kanca:'-', uker: f.ukerCode || '-',
+      loans:[], tabungan:f.tabungan, giro:f.giro, deposito:[], edc:f.edc, qris:f.qris,
+    });
+  });
+
   // 7. Compute aggregates & opportunity flags per customer
   customers.forEach(c => {
     c.totalPlafon = c.loans.reduce((s,l)=>s+l._plafon,0);
@@ -1387,7 +1421,8 @@ function buildCustomers(){
     if(c.tabungan.length===0) opp.push('noTabungan');
     if(c.giro.length===0) opp.push('noGiro');
     if(c.deposito.length===0 && c.totalFunding > 50000000) opp.push('noDeposito');
-    if(c.edc.length===0 && c.qris.length===0) opp.push('noMerchant');
+    if(c.edc.length===0) opp.push('noMerchantEdc');
+    if(c.qris.length===0) opp.push('noMerchantQris');
     if(c.worstKol >= 2) opp.push('kolWatch');
     c.opportunities = opp;
     c.oppCount = opp.length;
@@ -1405,7 +1440,8 @@ const OPP_DEFS = {
   noTabungan: {tag:'TABUNGAN', label:'Cross-sell Tabungan', sub:'Nasabah pinjaman belum punya rekening tabungan di BRI.', rec:'Tawarkan pembukaan rekening tabungan sebagai basis penampungan transaksi harian dan monitoring cashflow nasabah.'},
   noGiro:     {tag:'GIRO', label:'Cross-sell Giro', sub:'Nasabah pinjaman belum punya rekening giro.', rec:'Untuk nasabah segmen usaha, giro memudahkan transaksi bisnis dan memperkuat monitoring arus kas pasca pencairan kredit.'},
   noDeposito: {tag:'DEPOSITO', label:'Edukasi Deposito', sub:'Dana funding cukup besar (>Rp 50 juta) namun belum ditempatkan di deposito.', rec:'Dana mengendap besar berpotensi dikonversi menjadi deposito untuk optimalisasi dana pihak ketiga (DPK) dan loyalitas nasabah.'},
-  noMerchant: {tag:'EDC/QRIS', label:'Ekosistem EDC/QRIS', sub:'Nasabah belum memiliki merchant EDC maupun QRIS.', rec:'Peluang akuisisi ekosistem merchant (EDC/QRIS) khususnya untuk nasabah dengan usaha produktif, untuk memperluas fee based income & data transaksi.'},
+  noMerchantEdc: {tag:'EDC', label:'Cross-sell EDC', sub:'Nasabah belum memiliki merchant EDC.', rec:'Peluang akuisisi merchant EDC untuk nasabah dengan usaha produktif, memperluas fee based income & data transaksi tunai/kartu.'},
+  noMerchantQris: {tag:'QRIS', label:'Cross-sell QRIS', sub:'Nasabah belum memiliki QRIS.', rec:'Peluang akuisisi QRIS — akuisisi ekosistem pembayaran digital yang lebih murah & cepat setup dibanding EDC, cocok untuk usaha skala kecil-menengah.'},
   kolWatch:   {tag:'KOL', label:'Monitoring Kolektibilitas', sub:'Kolektibilitas terburuk berada di Kol 2 ke atas.', rec:'Perlu monitoring komitmen pembayaran dan penelusuran penyebab tunggakan; koordinasi RM SME & RM FT untuk joint OTS.'},
 };
 
@@ -1507,11 +1543,11 @@ function renderStats(){
     {label:'Total Nasabah (CIF)', value:custs.length, sub:'existing customer dari LW321', cls:'accent'},
     {label:'Total Plafon Pinjaman', value:fmtRupiah(totalPlafon), sub:`${custs.reduce((s,c)=>s+c.loans.length,0)} fasilitas kredit`, cls:''},
     {label:'Total Baki Debet', value:fmtRupiah(totalBaki), sub:'outstanding aktif', cls:''},
-    {label:'Total Funding (T+G+D)', value:fmtRupiah(totalFunding), sub:'tabungan + giro + deposito', cls:'success'},
-    {label:'Nasabah dengan Merchant', value:custMerchant, sub:'punya EDC dan/atau QRIS', cls:''},
+    {label:'Total Funding (T+G+D)', value:fmtRupiah(totalFunding), sub:'tabungan + giro + deposito · klik untuk rincian', cls:'success', onclick:'openFundingDetailModal()'},
+    {label:'Nasabah dengan Merchant', value:custMerchant, sub:'punya EDC dan/atau QRIS · klik untuk rincian', cls:'', onclick:'openMerchantDetailModal()'},
   ];
   $('statsGrid').innerHTML = cards.map(c => `
-    <div class="stat-card ${c.cls}">
+    <div class="stat-card ${c.cls}" ${c.onclick?`style="cursor:pointer" onclick="${c.onclick}"`:''}>
       <div class="stat-label">${c.label}</div>
       <div class="stat-value">${typeof c.value==='number' ? fmtNum(c.value) : c.value}</div>
       <div class="stat-sub">${c.sub}</div>
@@ -1520,6 +1556,59 @@ function renderStats(){
   $('badgeCust').textContent = custs.length;
   $('badgeOpp').textContent = custWithOpp;
 }
+
+/* Drill-down popups for the two composite stat cards above — since "Total
+   Funding" and "Nasabah dengan Merchant" are each a sum across three/two
+   source files, showing the per-product breakdown lets the person verify
+   the total themselves instead of just trusting one combined number. */
+function openFundingDetailModal(){
+  const custs = getScopedCustomers();
+  const agg = {tabungan:{sum:0,count:0}, giro:{sum:0,count:0}, deposito:{sum:0,count:0}};
+  custs.forEach(c => {
+    agg.tabungan.sum += c.totalTabungan; agg.tabungan.count += c.tabungan.length;
+    agg.giro.sum += c.totalGiro; agg.giro.count += c.giro.length;
+    agg.deposito.sum += c.totalDeposito; agg.deposito.count += c.deposito.length;
+  });
+  const totalSum = agg.tabungan.sum + agg.giro.sum + agg.deposito.sum;
+  const totalCount = agg.tabungan.count + agg.giro.count + agg.deposito.count;
+  $('statsDetailModalTitle').textContent = 'Rincian Total Funding';
+  $('statsDetailModalBody').innerHTML = `
+    <div class="table-wrap"><table class="data-table">
+      <thead><tr><th>Produk</th><th class="num">Jml Rekening</th><th class="num">Total Saldo</th></tr></thead>
+      <tbody>
+        <tr><td>Tabungan (DI319)</td><td class="num">${fmtNum(agg.tabungan.count)}</td><td class="num">${fmtRupiah(agg.tabungan.sum)}</td></tr>
+        <tr><td>Giro (DI321)</td><td class="num">${fmtNum(agg.giro.count)}</td><td class="num">${fmtRupiah(agg.giro.sum)}</td></tr>
+        <tr><td>Deposito (CI324)</td><td class="num">${fmtNum(agg.deposito.count)}</td><td class="num">${fmtRupiah(agg.deposito.sum)}</td></tr>
+        <tr style="font-weight:700"><td>Total</td><td class="num">${fmtNum(totalCount)}</td><td class="num">${fmtRupiah(totalSum)}</td></tr>
+      </tbody>
+    </table></div>
+  `;
+  $('statsDetailModal').style.display = 'flex';
+}
+function openMerchantDetailModal(){
+  const custs = getScopedCustomers();
+  const agg = {edc:{sum:0,count:0,trx:0}, qris:{sum:0,count:0,trx:0}};
+  custs.forEach(c => {
+    c.edc.forEach(m => { agg.edc.sum += m._volume||0; agg.edc.trx += m._trx||0; agg.edc.count++; });
+    c.qris.forEach(m => { agg.qris.sum += m._volume||0; agg.qris.trx += m._trx||0; agg.qris.count++; });
+  });
+  $('statsDetailModalTitle').textContent = 'Rincian Merchant EDC & QRIS';
+  $('statsDetailModalBody').innerHTML = `
+    <div class="table-wrap"><table class="data-table">
+      <thead><tr><th>Jenis</th><th class="num">Jml Merchant</th><th class="num">Jml Transaksi</th><th class="num">Volume</th></tr></thead>
+      <tbody>
+        <tr><td>EDC</td><td class="num">${fmtNum(agg.edc.count)}</td><td class="num">${fmtNum(agg.edc.trx)}</td><td class="num">${fmtRupiah(agg.edc.sum)}</td></tr>
+        <tr><td>QRIS</td><td class="num">${fmtNum(agg.qris.count)}</td><td class="num">${fmtNum(agg.qris.trx)}</td><td class="num">${fmtRupiah(agg.qris.sum)}</td></tr>
+      </tbody>
+    </table></div>
+  `;
+  $('statsDetailModal').style.display = 'flex';
+}
+function closeStatsDetailModal(){ $('statsDetailModal').style.display = 'none'; }
+window.openFundingDetailModal = openFundingDetailModal;
+window.openMerchantDetailModal = openMerchantDetailModal;
+window.closeStatsDetailModal = closeStatsDetailModal;
+
 
 /* ===================================================================
    RENDER: CUSTOMER TABLE
@@ -3053,6 +3142,89 @@ function renderCharts(){
   $('coverageDistBody').innerHTML = Object.keys(covBuckets).map(k =>
     `<tr><td>${k}</td><td class="num">${covBuckets[k]}</td></tr>`
   ).join('');
+
+  renderOverviewPriorityScatter();
+}
+
+/* Same WHO matrix as the Priority Kunjungan tab (same quadrant cut-offs,
+   same colors), but surfaced right on the Ringkasan overview — X axis here
+   is Funding Coverage, Y axis is OS, per the requested layout, so an RM can
+   see the concentration of customers (e.g. a cluster of high-OS + near-zero
+   coverage) at a glance without switching tabs. Recomputes the quadrant
+   data defensively rather than trusting it was already computed by the
+   Priority tab's own render path, so this never depends on tab visit order. */
+function renderOverviewPriorityScatter(){
+  computePriorityData();
+  const p = State.priority;
+  const wrap = $('overviewScatterWrap');
+  if(!wrap) return;
+  if(!p.list.length){
+    wrap.innerHTML = '<div class="empty">Tidak ada nasabah dengan Baki Debet aktif pada scope ini.</div>';
+    return;
+  }
+
+  const W = 700, H = 380;
+  const padL = 60, padR = 20, padT = 20, padB = 50;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const maxCov = Math.max(...p.list.map(r=>r.cov*100), p.p25Cov*100, 10) * 1.1;
+  const maxOS = Math.max(...p.list.map(r=>r.c.totalBakiDebet), p.p75OS, 1) * 1.05;
+
+  const xPix = cov => padL + (cov/maxCov) * plotW;
+  const yPix = os => padT + (1 - os/maxOS) * plotH;
+
+  const xTicks = [0,1,2,3,4].map(i => maxCov * i/4);
+  const yTicks = [0,1,2,3,4].map(i => maxOS * i/4);
+  const gridLines = [
+    ...xTicks.map(t => `<line x1="${xPix(t)}" y1="${padT}" x2="${xPix(t)}" y2="${padT+plotH}" stroke="#eef1f4" stroke-width="1"/>`),
+    ...yTicks.map(t => `<line x1="${padL}" y1="${yPix(t)}" x2="${padL+plotW}" y2="${yPix(t)}" stroke="#eef1f4" stroke-width="1"/>`),
+  ].join('');
+  const xLabels = xTicks.map(t => `<text x="${xPix(t)}" y="${padT+plotH+18}" font-size="10.5" fill="#5a7691" text-anchor="middle">${t.toFixed(0)}%</text>`).join('');
+  const yLabels = yTicks.map(t => `<text x="${padL-8}" y="${yPix(t)+4}" font-size="10.5" fill="#5a7691" text-anchor="end">${(t/1e6).toFixed(0)}jt</text>`).join('');
+
+  const cutoffX = `<line x1="${xPix(p.p25Cov*100)}" y1="${padT}" x2="${xPix(p.p25Cov*100)}" y2="${padT+plotH}" stroke="#8ba6bd" stroke-width="1.5" stroke-dasharray="6,4"/>`;
+  const cutoffY = `<line x1="${padL}" y1="${yPix(p.p75OS)}" x2="${padL+plotW}" y2="${yPix(p.p75OS)}" stroke="#8ba6bd" stroke-width="1.5" stroke-dasharray="6,4"/>`;
+
+  const points = p.list.map(r => {
+    const cx = xPix(r.cov*100), cy = yPix(r.c.totalBakiDebet);
+    const color = QUAD_COLOR[r.quad] || '#8ba6bd';
+    const tip = `${r.c.nama}\nOS: ${fmtRupiah(r.c.totalBakiDebet)}\nCoverage: ${(r.cov*100).toFixed(1)}%`;
+    return `<circle class="ov-pt" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="5" fill="${color}" fill-opacity="0.85" stroke="#fff" stroke-width="1" style="cursor:pointer" data-tip="${escapeHtml(tip)}"></circle>`;
+  }).join('');
+
+  const axisLines = `
+    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+plotH}" stroke="#0b2540" stroke-width="1.2"/>
+    <line x1="${padL}" y1="${padT+plotH}" x2="${padL+plotW}" y2="${padT+plotH}" stroke="#0b2540" stroke-width="1.2"/>
+  `;
+  const axisTitles = `
+    <text x="${padL+plotW/2}" y="${H-8}" font-size="12" fill="#0b2540" font-weight="700" text-anchor="middle">Funding Coverage (%)</text>
+    <text x="14" y="${padT+plotH/2}" font-size="12" fill="#0b2540" font-weight="700" text-anchor="middle" transform="rotate(-90 14 ${padT+plotH/2})">Baki Debet / OS (Rp)</text>
+  `;
+
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:480px;display:block" xmlns="http://www.w3.org/2000/svg">
+    ${gridLines}${axisLines}${cutoffX}${cutoffY}${points}${xLabels}${yLabels}${axisTitles}
+  </svg>`;
+
+  const tooltipEl = $('overviewScatterTooltip');
+  const showTip = (target, clientX, clientY) => {
+    tooltipEl.textContent = '';
+    target.dataset.tip.split('\n').forEach((line, i) => {
+      if(i > 0) tooltipEl.appendChild(document.createElement('br'));
+      tooltipEl.appendChild(document.createTextNode(line));
+    });
+    tooltipEl.style.left = (clientX + 14) + 'px';
+    tooltipEl.style.top = (clientY + 14) + 'px';
+    tooltipEl.style.display = 'block';
+  };
+  const hideTip = () => { tooltipEl.style.display = 'none'; };
+  wrap.onmousemove = e => {
+    const t = e.target.closest('.ov-pt');
+    if(t) showTip(t, e.clientX, e.clientY); else hideTip();
+  };
+  wrap.onmouseleave = hideTip;
+  wrap.onclick = e => {
+    const t = e.target.closest('.ov-pt');
+    if(t) showTip(t, e.clientX, e.clientY); else hideTip();
+  };
 }
 
 /* ===================================================================
@@ -3210,7 +3382,8 @@ function generateDummyCustomers(){
     if(c.tabungan.length===0) opp.push('noTabungan');
     if(c.giro.length===0) opp.push('noGiro');
     if(c.deposito.length===0 && c.totalFunding>50000000) opp.push('noDeposito');
-    if(c.edc.length===0 && c.qris.length===0) opp.push('noMerchant');
+    if(c.edc.length===0) opp.push('noMerchantEdc');
+    if(c.qris.length===0) opp.push('noMerchantQris');
     if(c.worstKol>=2) opp.push('kolWatch');
     c.opportunities = opp;
     c.oppCount = opp.length;

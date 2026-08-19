@@ -562,17 +562,17 @@ table.data-table td.empty{text-align:center}
           <div class="chart-canvas-wrap"><canvas id="chartTopFunding"></canvas></div>
         </div>
         <div class="chart-card">
-          <h3>Distribusi Funding Coverage Nasabah</h3>
+          <h3>Distribusi Deposit to Loan Nasabah</h3>
           <div class="chart-canvas-wrap"><canvas id="chartCoverageDist"></canvas></div>
           <div class="table-wrap" style="margin-top:12px">
             <table class="data-table">
-              <thead><tr><th>Funding Coverage</th><th class="num">Nasabah</th></tr></thead>
+              <thead><tr><th>Deposit to Loan</th><th class="num">Nasabah</th></tr></thead>
               <tbody id="coverageDistBody"></tbody>
             </table>
           </div>
         </div>
         <div class="chart-card">
-          <h3>Coverage Rendah (&lt;5%) vs Coverage Sehat (≥5%)</h3>
+          <h3>Deposit to Loan Rendah (&lt;5%) vs Deposit to Loan Sehat (≥5%)</h3>
           <div class="stats-grid" id="coverageThresholdStats"></div>
         </div>
       </div>
@@ -612,7 +612,7 @@ table.data-table td.empty{text-align:center}
                   <th class="sortable num" data-sort="totalPlafon">Plafon</th>
                   <th class="sortable num" data-sort="totalBakiDebet">Baki Debet</th>
                   <th class="sortable num" data-sort="totalFunding">Total Funding</th>
-                  <th class="sortable num" data-sort="fundingCoverage" title="Coverage: seberapa besar funding (Tabungan + Giro + Deposito) BRI menutupi Outstanding (baki debet) pinjaman nasabah.">Coverage ℹ️</th>
+                  <th class="sortable num" data-sort="fundingCoverage" title="Deposit to Loan: seberapa besar funding (Tabungan + Giro + Deposito) BRI menutupi Outstanding (baki debet) pinjaman nasabah.">Deposit to Loan ℹ️</th>
                   <th>Produk Dimiliki</th>
                   <th class="sortable" data-sort="oppCount" title="Jenis &amp; jumlah peluang bisnis yang terdeteksi otomatis. Arahkan kursor ke setiap badge untuk detail, atau buka tab Peluang Bisnis untuk daftar lengkap dan rekomendasinya.">Peluang ℹ️</th>
                 </tr>
@@ -646,25 +646,25 @@ table.data-table td.empty{text-align:center}
     <div class="tab-panel" id="panel-priority">
       <div class="panel">
         <div class="panel-header">
-          <div class="panel-title">🎯 Matrix Prioritas Kunjungan — OS × Funding Coverage</div>
+          <div class="panel-title">🎯 Matrix Prioritas Kunjungan — OS × Deposit to Loan</div>
         </div>
         <div class="panel-body">
-          <div class="detail-section-title">Matrix OS × Funding Coverage</div>
+          <div class="detail-section-title">Matrix OS × Deposit to Loan</div>
           <div class="table-wrap" style="max-width:720px;margin-bottom:18px">
             <table class="data-table">
               <thead><tr>
-                <th>Funding Coverage ↓ / OS →</th>
+                <th>Deposit to Loan ↓ / OS →</th>
                 <th class="ctr">OS Tinggi<br><span style="font-weight:400;text-transform:none;font-size:10.5px">≥ P75 OS</span></th>
                 <th class="ctr">OS Rendah<br><span style="font-weight:400;text-transform:none;font-size:10.5px">&lt; P75 OS</span></th>
               </tr></thead>
               <tbody>
                 <tr>
-                  <td><strong>Coverage Rendah</strong><br><span style="font-weight:400;font-size:11px;color:var(--text-soft)">≤ P25 Coverage</span></td>
+                  <td><strong>Deposit to Loan Rendah</strong><br><span style="font-weight:400;font-size:11px;color:var(--text-soft)">&lt; 5%</span></td>
                   <td class="ctr" style="background:#d64545;color:#fff;font-weight:700">🔴 VISIT</td>
                   <td class="ctr" style="background:#d69a12;color:#fff;font-weight:700">🟡 DEVELOP</td>
                 </tr>
                 <tr>
-                  <td><strong>Coverage Tinggi</strong><br><span style="font-weight:400;font-size:11px;color:var(--text-soft)">&gt; P25 Coverage</span></td>
+                  <td><strong>Deposit to Loan Tinggi</strong><br><span style="font-weight:400;font-size:11px;color:var(--text-soft)">≥ 5%</span></td>
                   <td class="ctr" style="background:#e07b1f;color:#fff;font-weight:700">🟠 MAINTAIN</td>
                   <td class="ctr" style="background:#0a9d6e;color:#fff;font-weight:700">🟢 MONITOR</td>
                 </tr>
@@ -673,14 +673,14 @@ table.data-table td.empty{text-align:center}
           </div>
 
           <div class="detail-section-title">DASAR PENENTUAN THRESHOLD PRIORITAS</div>
-          <p style="font-size:12px;color:var(--text-muted);margin:-4px 0 10px;line-height:1.6">Threshold otomatis ditentukan berdasarkan distribusi portfolio nasabah yang dipilih.</p>
+          <p style="font-size:12px;color:var(--text-muted);margin:-4px 0 10px;line-height:1.6">Threshold OS otomatis ditentukan berdasarkan distribusi portfolio nasabah yang dipilih (P75). Threshold Deposit to Loan menggunakan angka tetap (&lt;5% vs ≥5%), tidak bergantung pada distribusi portfolio — tabel di bawah untuk konteks distribusi saja.</p>
           <div class="table-wrap" style="margin-bottom:10px">
             <table class="data-table" style="max-width:560px">
-              <thead><tr><th>Statistik Portfolio</th><th class="num">Baki Debet (OS)</th><th class="num">Funding Coverage</th></tr></thead>
+              <thead><tr><th>Statistik Portfolio</th><th class="num">Baki Debet (OS)</th><th class="num">Deposit to Loan</th></tr></thead>
               <tbody id="priorityDistBody"></tbody>
             </table>
           </div>
-          <div class="upload-hint" style="margin-bottom:18px">⚠️ Catatan: Kalau angka Min–Max di atas jauh berjarak (contoh: Median jauh dari P75), distribusinya dapat menjadi skewed, sehingga proporsi kuadran yang terbentuk dapat kurang representatif. Dalam kondisi tersebut, threshold manual dapat digunakan untuk menyesuaikan cut-off prioritas.</div>
+          <div class="upload-hint" style="margin-bottom:18px">⚠️ Catatan: Kalau angka Min–Max OS di atas jauh berjarak (contoh: Median jauh dari P75), distribusi OS dapat menjadi skewed, sehingga cut-off OS otomatis dapat kurang representatif. Dalam kondisi tersebut, threshold manual dapat digunakan untuk menyesuaikan cut-off OS (threshold Deposit to Loan tetap di 5% dan tidak terpengaruh skew ini, kecuali di-override manual).</div>
 
           <div class="panel" style="margin-bottom:18px;border-color:var(--brand-mid)">
             <div class="panel-header"><div class="panel-title">Atur Threshold Prioritas</div></div>
@@ -693,7 +693,7 @@ table.data-table td.empty{text-align:center}
                   <p style="font-size:11.5px;color:var(--text-soft);margin-top:5px;line-height:1.5">Nasabah ≥ nilai ini dikategorikan <strong>High Business Value</strong>.</p>
                 </div>
                 <div>
-                  <label style="font-size:12px;font-weight:700;color:var(--text);display:block;margin-bottom:4px">Ambang Funding Coverage</label>
+                  <label style="font-size:12px;font-weight:700;color:var(--text);display:block;margin-bottom:4px">Ambang Deposit to Loan</label>
                   <input class="input" type="number" id="priorityCovOverride" placeholder="_____ %">
                   <p style="font-size:11.5px;color:var(--text-soft);margin-top:5px;line-height:1.5">Nasabah ≤ nilai ini dikategorikan <strong>High Relationship Gap</strong>.</p>
                 </div>
@@ -710,11 +710,11 @@ table.data-table td.empty{text-align:center}
             <div class="customer-hero-inner" id="priorityBasisContent"></div>
           </div>
 
-          <div class="detail-section-title">Step 1 — Matrix Kuadran OS × Coverage</div>
+          <div class="detail-section-title">Step 1 — Matrix Kuadran OS × Deposit to Loan</div>
           <div class="opp-grid" id="priorityQuadGrid"></div>
 
           <div class="chart-card" style="margin-bottom:18px;position:relative">
-            <h3>Sebaran Nasabah — Baki Debet (OS) vs Funding Coverage</h3>
+            <h3>Sebaran Nasabah — Baki Debet (OS) vs Deposit to Loan</h3>
             <div id="priorityScatterWrap" style="width:100%;overflow-x:auto"></div>
             <div id="priorityTooltip" style="position:fixed;pointer-events:none;display:none;z-index:1000;background:var(--brand-darker);color:#fff;padding:7px 11px;border-radius:6px;font-size:12px;line-height:1.5;box-shadow:0 4px 14px rgba(0,0,0,.3);white-space:nowrap"></div>
           </div>
@@ -732,7 +732,7 @@ table.data-table td.empty{text-align:center}
           <div class="table-wrap">
             <table class="data-table" id="priorityTable">
               <thead><tr>
-                <th>Nama Nasabah</th><th class="num">Baki Debet (OS)</th><th class="num">Funding Coverage</th><th>Kuadran</th><th>RM Pengelola Kredit</th><th>RM Pengelola FT</th>
+                <th>Nama Nasabah</th><th class="num">Baki Debet (OS)</th><th class="num">Deposit to Loan</th><th>Kuadran</th><th>RM Pengelola Kredit</th><th>RM Pengelola FT</th>
               </tr></thead>
               <tbody id="priorityBody"></tbody>
             </table>
@@ -1692,7 +1692,7 @@ function renderOpportunityRecommendations(c){
   } else if(kol === 2){
     notes.push(`<div class="rec-note" style="border-left-color:var(--warning);background:#fdf3dd;color:#7a5a06"><strong>Monitoring (Kol 2 - Dalam Perhatian Khusus):</strong> Perlu monitoring komitmen pembayaran dan penelusuran penyebab tunggakan sebelum kualitas memburuk lebih lanjut.</div>`);
   } else if(kol === 1 && c.priorityQuad === 'p1'){
-    notes.push(`<div class="rec-note"><strong>Joint OTS (Lancar + Priority 1):</strong> Kolektibilitas lancar, namun OS besar dengan Funding Coverage rendah (lihat tab Prioritas Kunjungan) — peluang kuat untuk kunjungan bersama RM SME &amp; RM FT guna memperdalam relationship funding.</div>`);
+    notes.push(`<div class="rec-note"><strong>Joint OTS (Lancar + Priority 1):</strong> Kolektibilitas lancar, namun OS besar dengan Deposit to Loan rendah (lihat tab Prioritas Kunjungan) — peluang kuat untuk kunjungan bersama RM SME &amp; RM FT guna memperdalam relationship funding.</div>`);
   }
 
   // Product cross-sell opportunities are only pushed for accounts that are
@@ -1754,7 +1754,7 @@ function renderCustomerDetail(c){
             <div><div class="f-label">Unit Kerja</div><div class="f-value">${escapeHtml(c.uker)}</div></div>
             <div><div class="f-label">Kolektibilitas Terburuk</div><div class="f-value">${c.worstKol} - ${KOL_LABEL[c.worstKol]}</div></div>
             <div><div class="f-label">RM Pengelola Kredit</div><div class="f-value">${escapeHtml(cleanPn(c.loans[0]?.pnPengelola))}</div></div>
-            <div><div class="f-label" title="Coverage: seberapa besar funding (Tabungan + Giro + Deposito) BRI menutupi Outstanding (baki debet) pinjaman nasabah.">Coverage ℹ️</div><div class="f-value">${c.fundingCoverage!=null ? (c.fundingCoverage*100).toFixed(1)+'%' : '-'}</div></div>
+            <div><div class="f-label" title="Deposit to Loan: seberapa besar funding (Tabungan + Giro + Deposito) BRI menutupi Outstanding (baki debet) pinjaman nasabah.">Deposit to Loan ℹ️</div><div class="f-value">${c.fundingCoverage!=null ? (c.fundingCoverage*100).toFixed(1)+'%' : '-'}</div></div>
           </div>
           <div class="product-pills">
             <span class="pill ${c.loans.length?'on':''}">Pinjaman ${c.loans.length}</span>
@@ -1815,6 +1815,56 @@ function renderOppGrid(){
   else $('oppDetail').innerHTML = '<div class="opp-detail-empty">Tidak ada peluang bisnis yang terdeteksi dari data saat ini.</div>';
 }
 
+/* Badan-usaha name heuristic (PT/CV/UD/etc. prefix) — used to add a "tap-in
+   via the owner" note for cross-sell opportunities on business entities,
+   since a company itself may not need a personal product, but its owner
+   often is the right entry point for one. */
+function looksLikeBadanUsaha(nama){
+  return /^(PT|CV|UD|PD|KOPERASI|FIRMA|YAYASAN|KSP|BUMDES)\b/i.test(cleanStr(nama));
+}
+
+/* Builds one contextual, per-customer insight for a Peluang Bisnis entry —
+   instead of a flat "belum punya X" for everyone in the category, it names
+   what the customer DOES already have at BRI (so the RM understands there's
+   already a relationship to build on, i.e. a live "tap-in" point) versus
+   customers starting from zero (who need a colder acquisition approach, with
+   a note that a business entity's owner can be tapped in as an alternate
+   entry point). Kolektibilitas is checked first and overrides everything —
+   a problem loan never gets a cross-sell pitch, matching the same guardrail
+   used elsewhere in the app (Customer 360, Wallet Share). */
+function buildOppInsightNote(c, key){
+  if(c.worstKol >= 3){
+    return `<div class="rec-note" style="border-left-color:var(--danger);background:#fdeceb;color:#8a2f2f;margin-top:8px"><strong>⚠️ Recovery (Kol ${c.worstKol} - ${KOL_LABEL[c.worstKol]||''}):</strong> Kolektibilitas sedang bermasalah — bukan waktunya cross-sell, fokus dulu ke penanganan kredit (monitoring/restrukturisasi/eksekusi).</div>`;
+  }
+  if(key === 'kolWatch'){
+    // Kol ≥3 already handled above, so this only fires for Kol 2 entries here.
+    return `<div class="rec-note" style="border-left-color:var(--warning);background:#fdf3dd;color:#7a5a06;margin-top:8px"><strong>👀 Monitoring (Kol 2 - Dalam Perhatian Khusus):</strong> Perlu dipantau komitmen pembayarannya sebelum kualitas memburuk lebih lanjut.</div>`;
+  }
+
+  const owned = [];
+  if(c.tabungan.length) owned.push('Tabungan');
+  if(c.giro.length) owned.push('Giro');
+  if(c.deposito.length) owned.push('Deposito');
+  if(c.edc.length) owned.push('EDC');
+  if(c.qris.length) owned.push('QRIS');
+
+  const missingLabel = key==='noMerchant'
+    ? [c.edc.length===0?'EDC':null, c.qris.length===0?'QRIS':null].filter(Boolean).join(' & ')
+    : {noTabungan:'Tabungan', noGiro:'Giro', noDeposito:'Deposito'}[key];
+
+  let msg;
+  if(owned.length){
+    const kolNote = c.worstKol === 2 ? ' (perhatikan Kol 2 — tetap dampingi monitoring pembayaran saat pendekatan ini dilakukan).' : '.';
+    msg = `${escapeHtml(c.nama)} sudah punya <strong>${owned.join(', ')}</strong> di BRI, cuma <strong>${missingLabel}</strong> yang belum ada — relationship-nya sudah jalan, jadi RM FT masih bisa tap-in untuk melengkapi dengan ${missingLabel}${kolNote}`;
+  } else {
+    msg = `${escapeHtml(c.nama)} belum punya produk funding/merchant apapun di BRI — perlu pendekatan akuisisi dari awal, bukan sekadar pelengkap.`;
+    if(looksLikeBadanUsaha(c.nama)){
+      msg += ` Karena berbentuk badan usaha, RM FT juga bisa tap-in lewat pemilik/pengurus (owner) sebagai entry point personal banking, sambil tetap menjajaki funding atas nama perusahaan.`;
+    }
+  }
+  return `<div class="rec-note" style="margin-top:8px">${msg}</div>`;
+}
+
 function selectOpp(k){
   State.activeOpp = k;
   document.querySelectorAll('.opp-card').forEach(el => el.classList.toggle('active', el.dataset.opp === k));
@@ -1834,9 +1884,8 @@ function selectOpp(k){
         <div class="detail-field"><span class="lbl">Baki Debet</span><span class="val">${fmtRupiah(c.totalBakiDebet)}</span></div>
         <div class="detail-field"><span class="lbl">Total Funding</span><span class="val">${fmtRupiah(c.totalFunding)}</span></div>
         <div class="detail-field"><span class="lbl">RM Pengelola Kredit</span><span class="val">${escapeHtml(cleanPn(c.loans[0]?.pnPengelola))}</span></div>
-        ${k==='noMerchant' ? `<div class="detail-field"><span class="lbl">Belum Punya</span><span class="val">${[c.edc.length===0?'EDC':null, c.qris.length===0?'QRIS':null].filter(Boolean).join(' dan ')}</span></div>` : ''}
       </div>
-      <div style="margin-top:10px"><button class="btn btn-outline btn-sm" onclick="goToWalletShare('${escapeHtml(c.cif)}')">💰 Cek Wallet Share</button></div>
+      ${buildOppInsightNote(c, k)}
     </div>
   `).join('');
   $('oppDetail').innerHTML = `
@@ -1848,11 +1897,11 @@ window.selectOpp = selectOpp;
 $('oppSearch').addEventListener('input', () => { if(State.activeOpp) selectOpp(State.activeOpp); });
 
 /* ===================================================================
-   PRIORITY VISIT MATRIX (OS × Funding Coverage)
+   PRIORITY VISIT MATRIX (OS × Deposit to Loan)
    ---------------------------------------------------------------
    Two-stage framework:
      STEP 1 — Matrix (WHO): relative screening. Baki Debet (OS) vs
-       Funding Coverage, split at P75 (OS) / P25 (Coverage) *within the
+       Deposit to Loan, split at P75 (OS) / fixed 5% threshold (Deposit to Loan) *within the
        currently scoped/filtered customer set* — these cut-offs are
        relative, not absolute, and are shown explicitly (with a full
        distribution table) so the person reading can judge whether a
@@ -1866,10 +1915,10 @@ $('oppSearch').addEventListener('input', () => { if(State.activeOpp) selectOpp(S
        matrix alone never plays final judge.
    ================================================================= */
 const QUAD_DEFS = {
-  p1:       {quadName:'Priority 1', status:'Visit',    label:'VISIT',    emoji:'🔴', sub:'OS tinggi + Coverage rendah. Nasabah punya exposure besar, tetapi funding relationship relatif rendah. Fokus utama kunjungan.', badgeCls:'k-5'},
-  maintain: {quadName:'Priority 2', status:'Maintain', label:'MAINTAIN', emoji:'🟠', sub:'OS tinggi + Coverage tinggi. Nasabah bernilai tinggi dan relationship sudah kuat. Bukan berarti tidak perlu dikunjungi, tapi fokusnya menjaga relationship dan mencari deepening opportunity.', badgeCls:'k-3'},
-  monitor:  {quadName:'Priority 3', status:'Develop',  label:'DEVELOP',  emoji:'🟡', sub:'OS rendah + Coverage rendah. Relationship masih rendah, tetapi exposure relatif kecil. Dikembangkan berdasarkan opportunity yang ditemukan, bukan prioritas utama kunjungan.', badgeCls:'k-2'},
-  stable:   {quadName:'Priority 4', status:'Monitor',  label:'MONITOR',  emoji:'🟢', sub:'OS rendah + Coverage tinggi. Exposure relatif kecil dan relationship sudah cukup baik. Monitoring/maintain, bukan target utama kunjungan.', badgeCls:'k-1'},
+  p1:       {quadName:'Priority 1', status:'Visit',    label:'VISIT',    emoji:'🔴', sub:'OS tinggi + Deposit to Loan rendah. Nasabah punya exposure besar, tetapi funding relationship relatif rendah. Fokus utama kunjungan.', badgeCls:'k-5'},
+  maintain: {quadName:'Priority 2', status:'Maintain', label:'MAINTAIN', emoji:'🟠', sub:'OS tinggi + Deposit to Loan tinggi. Nasabah bernilai tinggi dan relationship sudah kuat. Bukan berarti tidak perlu dikunjungi, tapi fokusnya menjaga relationship dan mencari deepening opportunity.', badgeCls:'k-3'},
+  monitor:  {quadName:'Priority 3', status:'Develop',  label:'DEVELOP',  emoji:'🟡', sub:'OS rendah + Deposit to Loan rendah. Relationship masih rendah, tetapi exposure relatif kecil. Dikembangkan berdasarkan opportunity yang ditemukan, bukan prioritas utama kunjungan.', badgeCls:'k-2'},
+  stable:   {quadName:'Priority 4', status:'Monitor',  label:'MONITOR',  emoji:'🟢', sub:'OS rendah + Deposit to Loan tinggi. Exposure relatif kecil dan relationship sudah cukup baik. Monitoring/maintain, bukan target utama kunjungan.', badgeCls:'k-1'},
 };
 const QUAD_COLOR = {p1:'#d64545', maintain:'#e07b1f', monitor:'#d69a12', stable:'#0a9d6e'};
 
@@ -1890,22 +1939,25 @@ function computePriorityData(){
   const osArr = custs.map(c => c.totalBakiDebet).sort((a,b)=>a-b);
   const covArr = custs.map(c => c.fundingCoverage ?? 0).sort((a,b)=>a-b);
   const p75OS_auto = percentile(osArr, 75);
-  const p25Cov_auto = percentile(covArr, 25);
-  // Manual overrides (from the "Ambang Manual" inputs) replace the auto
-  // percentile cut-off when set — this is the "absolute floor" escape hatch
-  // for when the distribution is too skewed for a relative P75/P25 split to
-  // mean anything (exactly the risk flagged in the info banner above).
+  // Deposit to Loan cut-off is now a FIXED policy threshold (<5% vs ≥5%), not
+  // a portfolio percentile — it no longer moves depending on which branch/RM
+  // scope happens to be selected, so "low DTL" always means the same thing.
+  const COV_FIXED_THRESHOLD = 0.05;
+  // Manual override (from the "Ambang Manual" inputs) replaces either default
+  // when set — the OS side still supports a manual floor for when the P75
+  // percentile split isn't meaningful for a skewed distribution; the DTL side
+  // supports overriding the fixed 5% policy threshold for a specific focus.
   const ov = State.priorityOverride || {os:null, cov:null};
   const p75OS = (ov.os != null && !isNaN(ov.os)) ? ov.os : p75OS_auto;
-  const p25Cov = (ov.cov != null && !isNaN(ov.cov)) ? ov.cov/100 : p25Cov_auto;
+  const p25Cov = (ov.cov != null && !isNaN(ov.cov)) ? ov.cov/100 : COV_FIXED_THRESHOLD;
   const usingOverride = (ov.os != null && !isNaN(ov.os)) || (ov.cov != null && !isNaN(ov.cov));
   const distOS = {min:osArr[0]||0, p25:percentile(osArr,25), median:percentile(osArr,50), p75:p75OS_auto, max:osArr[osArr.length-1]||0};
-  const distCov = {min:covArr[0]||0, p25:p25Cov_auto, median:percentile(covArr,50), p75:percentile(covArr,75), max:covArr[covArr.length-1]||0};
+  const distCov = {min:covArr[0]||0, p25:percentile(covArr,25), median:percentile(covArr,50), p75:percentile(covArr,75), max:covArr[covArr.length-1]||0};
 
   const list = custs.map(c => {
     const cov = c.fundingCoverage ?? 0;
     const highOS = c.totalBakiDebet >= p75OS;
-    const lowCov = cov <= p25Cov;
+    const lowCov = cov < p25Cov;
     const quad = highOS && lowCov ? 'p1' : highOS ? 'maintain' : lowCov ? 'monitor' : 'stable';
     // Tag the customer object itself so the per-customer detail card (Customer
     // 360) can reference its quadrant for the Joint OTS recommendation logic.
@@ -2020,12 +2072,12 @@ function renderPriorityChart(){
   const cutoffX = `<line x1="${xPix(p.p75OS)}" y1="${padT}" x2="${xPix(p.p75OS)}" y2="${padT+plotH}" stroke="#8ba6bd" stroke-width="1.5" stroke-dasharray="6,4"/>`;
   const cutoffY = `<line x1="${padL}" y1="${yPix(p.p25Cov*100)}" x2="${padL+plotW}" y2="${yPix(p.p25Cov*100)}" stroke="#8ba6bd" stroke-width="1.5" stroke-dasharray="6,4"/>`;
   const cutoffXLabel = `<text x="${Math.min(xPix(p.p75OS)+6, padL+plotW-4)}" y="${padT+12}" font-size="10.5" fill="#5a7691" font-weight="700">P75 OS: ${fmtRupiah(p.p75OS)}</text>`;
-  const cutoffYLabel = `<text x="${padL+plotW-4}" y="${yPix(p.p25Cov*100)-6}" font-size="10.5" fill="#5a7691" font-weight="700" text-anchor="end">P25 Coverage: ${(p.p25Cov*100).toFixed(1)}%</text>`;
+  const cutoffYLabel = `<text x="${padL+plotW-4}" y="${yPix(p.p25Cov*100)-6}" font-size="10.5" fill="#5a7691" font-weight="700" text-anchor="end">Ambang Deposit to Loan: ${(p.p25Cov*100).toFixed(1)}%</text>`;
 
   const points = p.list.map(r => {
     const cx = xPix(r.c.totalBakiDebet), cy = yPix(r.cov*100);
     const color = QUAD_COLOR[r.quad] || '#8ba6bd';
-    const tip = `${r.c.nama}\nOS: ${fmtRupiah(r.c.totalBakiDebet)}\nCoverage: ${(r.cov*100).toFixed(1)}%`;
+    const tip = `${r.c.nama}\nOS: ${fmtRupiah(r.c.totalBakiDebet)}\nDeposit to Loan: ${(r.cov*100).toFixed(1)}%`;
     return `<circle class="priority-pt" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="6" fill="${color}" fill-opacity="0.85" stroke="#fff" stroke-width="1" style="cursor:pointer" data-tip="${escapeHtml(tip)}"></circle>`;
   }).join('');
 
@@ -2036,7 +2088,7 @@ function renderPriorityChart(){
 
   const axisTitles = `
     <text x="${padL+plotW/2}" y="${H-8}" font-size="12" fill="#0b2540" font-weight="700" text-anchor="middle">Baki Debet / OS (Rp juta)</text>
-    <text x="16" y="${padT+plotH/2}" font-size="12" fill="#0b2540" font-weight="700" text-anchor="middle" transform="rotate(-90 16 ${padT+plotH/2})">Funding Coverage (%)</text>
+    <text x="16" y="${padT+plotH/2}" font-size="12" fill="#0b2540" font-weight="700" text-anchor="middle" transform="rotate(-90 16 ${padT+plotH/2})">Deposit to Loan (%)</text>
   `;
 
   wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:560px;display:block" xmlns="http://www.w3.org/2000/svg">
@@ -2083,33 +2135,30 @@ function renderPriorityTab(){
   const p = State.priority;
   $('priorityTableHint').textContent =
     `Sebaran kuadran: ${QUAD_DEFS.p1.label} = ${p.quadCounts.p1}, ${QUAD_DEFS.maintain.label} = ${p.quadCounts.maintain}, ${QUAD_DEFS.monitor.label} = ${p.quadCounts.monitor}, ${QUAD_DEFS.stable.label} = ${p.quadCounts.stable} nasabah. ` +
-    `Kalau salah satu kuadran mendominasi (misalnya hampir semua "${QUAD_DEFS.stable.label}"), itu tandanya distribusi OS/Coverage di scope ini skewed — coba isi threshold manual di atas dengan angka yang lebih masuk akal untuk data kamu.`;
+    `Kalau salah satu kuadran mendominasi (misalnya hampir semua "${QUAD_DEFS.stable.label}"), itu tandanya distribusi OS/Deposit to Loan di scope ini skewed — coba isi threshold manual di atas dengan angka yang lebih masuk akal untuk data kamu.`;
 }
 
 /* Makes it explicit whether the matrix is currently running on the automatic
    portfolio percentile (P75/P25) or on a manual threshold the person typed
    in — so a different quadrant split never looks unexplained. */
+/* Makes it explicit whether each axis is currently running on its default
+   basis (OS: P75 portfolio percentile; Deposit to Loan: fixed 5% policy
+   threshold) or a manual override the person typed in — since the two axes
+   now have different kinds of defaults, each is labeled independently
+   instead of one blanket "auto vs manual" badge for the whole card. */
 function renderPriorityBasisCard(){
   const p = State.priority;
-  if(p.usingOverride){
-    $('priorityBasisContent').innerHTML = `
-      <span class="label-tag">Priority Matrix</span>
-      <div class="cname" style="font-size:16px">Basis: Manual Threshold</div>
-      <div class="customer-hero-grid" style="margin-top:10px">
-        <div><div class="f-label">Ambang OS</div><div class="f-value">OS ≥ ${fmtRupiah(p.p75OS)}</div></div>
-        <div><div class="f-label">Ambang Funding Coverage</div><div class="f-value">Coverage ≤ ${(p.p25Cov*100).toFixed(1)}%</div></div>
-      </div>
-    `;
-  } else {
-    $('priorityBasisContent').innerHTML = `
-      <span class="label-tag">Priority Matrix</span>
-      <div class="cname" style="font-size:16px">Basis: Portfolio Percentile</div>
-      <div class="customer-hero-grid" style="margin-top:10px">
-        <div><div class="f-label">P75 OS (otomatis)</div><div class="f-value">OS ≥ ${fmtRupiah(p.p75OS)}</div></div>
-        <div><div class="f-label">P25 Coverage (otomatis)</div><div class="f-value">Coverage ≤ ${(p.p25Cov*100).toFixed(1)}%</div></div>
-      </div>
-    `;
-  }
+  const ov = State.priorityOverride || {};
+  const osIsManual = ov.os != null && !isNaN(ov.os);
+  const covIsManual = ov.cov != null && !isNaN(ov.cov);
+  $('priorityBasisContent').innerHTML = `
+    <span class="label-tag">Priority Matrix</span>
+    <div class="cname" style="font-size:16px">Basis Threshold</div>
+    <div class="customer-hero-grid" style="margin-top:10px">
+      <div><div class="f-label">Ambang OS — ${osIsManual?'Manual':'P75 Otomatis (persentil portfolio)'}</div><div class="f-value">OS ≥ ${fmtRupiah(p.p75OS)}</div></div>
+      <div><div class="f-label">Ambang Deposit to Loan — ${covIsManual?'Manual':'Threshold Tetap'}</div><div class="f-value">Deposit to Loan &lt; ${(p.p25Cov*100).toFixed(1)}%</div></div>
+    </div>
+  `;
 }
 $('prioritySearch').addEventListener('input', renderPriorityTable);
 $('btnClearPriorityFilter').addEventListener('click', () => {
@@ -2133,7 +2182,7 @@ $('btnResetPriorityOverride').addEventListener('click', () => {
   $('priorityCovOverride').value = '';
   State.priorityOverride = {os:null, cov:null};
   renderPriorityTab();
-  showToast('Kembali ke cut-off P75/P25 otomatis.', 'info');
+  showToast('Kembali ke threshold default (OS: P75 otomatis, Deposit to Loan: 5%).', 'info');
 });
 
 /* ===================================================================
@@ -3072,7 +3121,7 @@ function renderCharts(){
     options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>'Rp '+c.parsed.x.toLocaleString('id-ID')}}}, scales:{x:{ticks:{callback:v=>'Rp '+(v/1e6).toFixed(0)+'jt'}}}}
   });
 
-  // Funding Coverage bucketed by range, so it's obvious at a glance how many
+  // Deposit to Loan bucketed by range, so it's obvious at a glance how many
   // customers have little-to-no funding relationship vs. a well-covered one.
   // 0–10% split into 0–5%/5–10% to line up with the <5%/≥5% threshold above.
   const covBuckets = {'0%':0, '>0–5%':0, '>5–10%':0, '>10–25%':0, '>25–50%':0, '>50%':0};
@@ -3101,8 +3150,8 @@ function renderCharts(){
   const lowCovOS = lowCov.reduce((s,c)=>s+c.totalBakiDebet,0);
   const healthyCovOS = healthyCov.reduce((s,c)=>s+c.totalBakiDebet,0);
   const covCards = [
-    {label:'Nasabah Coverage < 5%', value:lowCov.length, sub:`${custs.length>0?(lowCov.length/custs.length*100).toFixed(1):0}% dari nasabah · Baki Debet ${fmtRupiah(lowCovOS)}`, cls:'danger'},
-    {label:'Nasabah Coverage ≥ 5%', value:healthyCov.length, sub:`${custs.length>0?(healthyCov.length/custs.length*100).toFixed(1):0}% dari nasabah · Baki Debet ${fmtRupiah(healthyCovOS)}`, cls:'success'},
+    {label:'Nasabah Deposit to Loan < 5%', value:lowCov.length, sub:`${custs.length>0?(lowCov.length/custs.length*100).toFixed(1):0}% dari nasabah · Baki Debet ${fmtRupiah(lowCovOS)}`, cls:'danger'},
+    {label:'Nasabah Deposit to Loan ≥ 5%', value:healthyCov.length, sub:`${custs.length>0?(healthyCov.length/custs.length*100).toFixed(1):0}% dari nasabah · Baki Debet ${fmtRupiah(healthyCovOS)}`, cls:'success'},
   ];
   $('coverageThresholdStats').innerHTML = covCards.map(cd => `
     <div class="stat-card ${cd.cls}"><div class="stat-label">${cd.label}</div><div class="stat-value">${fmtNum(cd.value)}</div><div class="stat-sub">${cd.sub}</div></div>
@@ -3126,7 +3175,7 @@ function exportToExcel(){
     ]);
     const summaryHeader = ['Nama Nasabah','CIF','Unit Kerja','Kol Terburuk','Jml Fasilitas','Total Plafon','Total Baki Debet','Total Tunggakan',
       'Jml Tabungan','Saldo Tabungan','Jml Giro','Saldo Giro','Jml Deposito','Nominal Deposito','Total Funding','Jml Merchant','Volume Merchant',
-      'Funding Coverage (%)','Jml Peluang','Detail Peluang'];
+      'Deposit to Loan (%)','Jml Peluang','Detail Peluang'];
     const wsSummary = XLSX.utils.aoa_to_sheet([summaryHeader, ...summaryRows]);
     wsSummary['!cols'] = summaryHeader.map(h=>({wch:Math.max(14,h.length+2)}));
     XLSX.utils.book_append_sheet(wb, wsSummary, 'Customer 360 Summary');

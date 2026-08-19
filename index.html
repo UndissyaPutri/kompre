@@ -646,71 +646,43 @@ table.data-table td.empty{text-align:center}
     <div class="tab-panel" id="panel-priority">
       <div class="panel">
         <div class="panel-header">
-          <div class="panel-title">🎯 Matrix Prioritas Kunjungan — OS × Deposit to Loan</div>
+          <div class="panel-title">🎯 Prioritas Kunjungan — Deposit to Loan</div>
         </div>
         <div class="panel-body">
-          <div class="detail-section-title">Matrix OS × Deposit to Loan</div>
-          <div class="table-wrap" style="max-width:720px;margin-bottom:18px">
-            <table class="data-table">
-              <thead><tr>
-                <th>Deposit to Loan ↓ / OS →</th>
-                <th class="ctr">OS Tinggi<br><span style="font-weight:400;text-transform:none;font-size:10.5px">≥ P75 OS</span></th>
-                <th class="ctr">OS Rendah<br><span style="font-weight:400;text-transform:none;font-size:10.5px">&lt; P75 OS</span></th>
-              </tr></thead>
-              <tbody>
-                <tr>
-                  <td><strong>Deposit to Loan Rendah</strong><br><span style="font-weight:400;font-size:11px;color:var(--text-soft)">&lt; 5%</span></td>
-                  <td class="ctr" style="background:#d64545;color:#fff;font-weight:700">🔴 VISIT</td>
-                  <td class="ctr" style="background:#d69a12;color:#fff;font-weight:700">🟡 DEVELOP</td>
-                </tr>
-                <tr>
-                  <td><strong>Deposit to Loan Tinggi</strong><br><span style="font-weight:400;font-size:11px;color:var(--text-soft)">≥ 5%</span></td>
-                  <td class="ctr" style="background:#e07b1f;color:#fff;font-weight:700">🟠 MAINTAIN</td>
-                  <td class="ctr" style="background:#0a9d6e;color:#fff;font-weight:700">🟢 MONITOR</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="info-banner">
+            <strong>Pendekatannya sekarang bukan matrix</strong> — Deposit to Loan pakai threshold tetap (bukan persentil portfolio), jadi nasabah cukup dibagi 2: <strong>Perlu Kunjungan</strong> (Deposit to Loan &lt; 5%) dan <strong>Sehat</strong> (≥ 5%). Di dalam grup "Perlu Kunjungan", nasabah diurutkan dari <strong>OS (Baki Debet) terbesar</strong> — karena semakin besar OS dengan funding yang minim, semakin besar juga relationship gap yang perlu digarap duluan.
           </div>
 
-          <div class="detail-section-title">DASAR PENENTUAN THRESHOLD PRIORITAS</div>
-          <p style="font-size:12px;color:var(--text-muted);margin:-4px 0 10px;line-height:1.6">Threshold OS otomatis ditentukan berdasarkan distribusi portfolio nasabah yang dipilih (P75). Threshold Deposit to Loan menggunakan angka tetap (&lt;5% vs ≥5%), tidak bergantung pada distribusi portfolio — tabel di bawah untuk konteks distribusi saja.</p>
-          <div class="table-wrap" style="margin-bottom:10px">
+          <div class="detail-section-title">DASAR PENENTUAN THRESHOLD</div>
+          <p style="font-size:12px;color:var(--text-muted);margin:-4px 0 10px;line-height:1.6">Deposit to Loan pakai threshold tetap &lt;5% / ≥5%. Distribusi OS di bawah ini murni konteks skala portfolio — tidak dipakai sebagai cut-off, hanya untuk urutan prioritas di dalam grup "Perlu Kunjungan".</p>
+          <div class="table-wrap" style="margin-bottom:18px">
             <table class="data-table" style="max-width:560px">
               <thead><tr><th>Statistik Portfolio</th><th class="num">Baki Debet (OS)</th><th class="num">Deposit to Loan</th></tr></thead>
               <tbody id="priorityDistBody"></tbody>
             </table>
           </div>
-          <div class="upload-hint" style="margin-bottom:18px">⚠️ Catatan: Kalau angka Min–Max OS di atas jauh berjarak (contoh: Median jauh dari P75), distribusi OS dapat menjadi skewed, sehingga cut-off OS otomatis dapat kurang representatif. Dalam kondisi tersebut, threshold manual dapat digunakan untuk menyesuaikan cut-off OS (threshold Deposit to Loan tetap di 5% dan tidak terpengaruh skew ini, kecuali di-override manual).</div>
 
           <div class="panel" style="margin-bottom:18px;border-color:var(--brand-mid)">
-            <div class="panel-header"><div class="panel-title">Atur Threshold Prioritas</div></div>
+            <div class="panel-header"><div class="panel-title">Atur Threshold Deposit to Loan</div></div>
             <div class="panel-body">
-              <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:16px;line-height:1.6">Gunakan threshold manual apabila distribusi portfolio terlalu terkonsentrasi atau terdapat business focus tertentu.</p>
-              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin-bottom:14px">
-                <div>
-                  <label style="font-size:12px;font-weight:700;color:var(--text);display:block;margin-bottom:4px">Ambang OS</label>
-                  <input class="input" type="number" id="priorityOsOverride" placeholder="Rp __________">
-                  <p style="font-size:11.5px;color:var(--text-soft);margin-top:5px;line-height:1.5">Nasabah ≥ nilai ini dikategorikan <strong>High Business Value</strong>.</p>
-                </div>
-                <div>
-                  <label style="font-size:12px;font-weight:700;color:var(--text);display:block;margin-bottom:4px">Ambang Deposit to Loan</label>
-                  <input class="input" type="number" id="priorityCovOverride" placeholder="_____ %">
-                  <p style="font-size:11.5px;color:var(--text-soft);margin-top:5px;line-height:1.5">Nasabah ≤ nilai ini dikategorikan <strong>High Relationship Gap</strong>.</p>
-                </div>
+              <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:16px;line-height:1.6">Default 5% mengikuti kebijakan. Ubah kalau ada business focus tertentu yang butuh ambang berbeda.</p>
+              <div style="max-width:280px;margin-bottom:14px">
+                <label style="font-size:12px;font-weight:700;color:var(--text);display:block;margin-bottom:4px">Ambang Deposit to Loan</label>
+                <input class="input" type="number" id="priorityCovOverride" placeholder="5">
+                <p style="font-size:11.5px;color:var(--text-soft);margin-top:5px;line-height:1.5">Nasabah &lt; nilai ini masuk <strong>Perlu Kunjungan</strong>.</p>
               </div>
               <div style="display:flex;gap:10px">
                 <button class="btn btn-primary btn-sm" id="btnApplyPriorityOverride">Terapkan</button>
-                <button class="btn btn-outline btn-sm" id="btnResetPriorityOverride">Reset ke Otomatis</button>
+                <button class="btn btn-outline btn-sm" id="btnResetPriorityOverride">Reset ke 5%</button>
               </div>
             </div>
           </div>
 
-          <div class="detail-section-title">Priority Matrix</div>
           <div class="customer-hero" id="priorityBasisCard" style="padding:14px 20px;margin-bottom:18px">
             <div class="customer-hero-inner" id="priorityBasisContent"></div>
           </div>
 
-          <div class="detail-section-title">Step 1 — Matrix Kuadran OS × Deposit to Loan</div>
+          <div class="detail-section-title">Ringkasan: Perlu Kunjungan vs Sehat</div>
           <div class="opp-grid" id="priorityQuadGrid"></div>
 
           <div class="chart-card" style="margin-bottom:18px;position:relative">
@@ -719,20 +691,20 @@ table.data-table td.empty{text-align:center}
             <div id="priorityTooltip" style="position:fixed;pointer-events:none;display:none;z-index:1000;background:var(--brand-darker);color:#fff;padding:7px 11px;border-radius:6px;font-size:12px;line-height:1.5;box-shadow:0 4px 14px rgba(0,0,0,.3);white-space:nowrap"></div>
           </div>
 
-          <div class="detail-section-title">Step 2 — Opportunity</div>
+          <div class="detail-section-title">Daftar Prioritas Kunjungan</div>
           <div class="upload-hint" style="margin-bottom:8px" id="priorityTableHint"></div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
             <div class="search-wrap no-print" style="max-width:420px;flex:1">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input class="input" id="prioritySearch" placeholder="Cari nama nasabah atau CIF...">
             </div>
-            <button class="btn btn-outline btn-sm no-print" id="btnClearPriorityFilter">Reset Pencarian &amp; Kuadran</button>
+            <button class="btn btn-outline btn-sm no-print" id="btnClearPriorityFilter">Reset Pencarian &amp; Status</button>
             <span style="font-size:12px;color:var(--text-muted)" id="priorityCounter"></span>
           </div>
           <div class="table-wrap">
             <table class="data-table" id="priorityTable">
               <thead><tr>
-                <th>Nama Nasabah</th><th class="num">Baki Debet (OS)</th><th class="num">Deposit to Loan</th><th>Kuadran</th><th>RM Pengelola Kredit</th><th>RM Pengelola FT</th>
+                <th>Nama Nasabah</th><th class="num">Baki Debet (OS)</th><th class="num">Deposit to Loan</th><th>Status</th><th>RM Pengelola Kredit</th><th>RM Pengelola FT</th>
               </tr></thead>
               <tbody id="priorityBody"></tbody>
             </table>
@@ -1619,7 +1591,7 @@ function oppPills(c){
     badges.push({tag:'RECOVERY', title:`Kol ${kol} - ${KOL_LABEL[kol]||''}: kolektibilitas bermasalah — fokus penanganan kredit (monitoring/negosiasi/eksekusi), bukan cross-sell.`});
   } else {
     if(kol === 2) badges.push({tag:'MONITORING', title:'Kol 2 - Dalam Perhatian Khusus: perlu dipantau komitmen pembayarannya.'});
-    if(kol === 1 && c.priorityQuad === 'p1') badges.push({tag:'JOINT OTS', title:'Lancar namun Priority 1 di Matrix Prioritas Kunjungan — peluang kunjungan bersama RM SME & RM FT.'});
+    if(kol === 1 && c.priorityQuad === 'needsVisit') badges.push({tag:'JOINT OTS', title:'Lancar namun Deposit to Loan rendah (Perlu Kunjungan) — peluang kunjungan bersama RM SME & RM FT.'});
     c.opportunities.filter(k => k !== 'kolWatch').forEach(k => {
       const def = OPP_DEFS[k];
       badges.push({tag:def.tag, title:`${def.label} — ${def.sub}`});
@@ -1691,8 +1663,8 @@ function renderOpportunityRecommendations(c){
     notes.push(`<div class="rec-note" style="border-left-color:var(--danger);background:#fdeceb;color:#8a2f2f"><strong>Recovery (Kol ${kol} - ${escapeHtml(kolLabel)}):</strong> Kolektibilitas sudah bermasalah — fokus utamanya penanganan kredit bermasalah (monitoring intensif, negosiasi restrukturisasi, atau proses eksekusi jaminan), bukan cross-sell produk baru.</div>`);
   } else if(kol === 2){
     notes.push(`<div class="rec-note" style="border-left-color:var(--warning);background:#fdf3dd;color:#7a5a06"><strong>Monitoring (Kol 2 - Dalam Perhatian Khusus):</strong> Perlu monitoring komitmen pembayaran dan penelusuran penyebab tunggakan sebelum kualitas memburuk lebih lanjut.</div>`);
-  } else if(kol === 1 && c.priorityQuad === 'p1'){
-    notes.push(`<div class="rec-note"><strong>Joint OTS (Lancar + Priority 1):</strong> Kolektibilitas lancar, namun OS besar dengan Deposit to Loan rendah (lihat tab Prioritas Kunjungan) — peluang kuat untuk kunjungan bersama RM SME &amp; RM FT guna memperdalam relationship funding.</div>`);
+  } else if(kol === 1 && c.priorityQuad === 'needsVisit'){
+    notes.push(`<div class="rec-note"><strong>Joint OTS (Lancar + Perlu Kunjungan):</strong> Kolektibilitas lancar, namun Deposit to Loan masih rendah (&lt;5%, lihat tab Prioritas Kunjungan) — peluang kuat untuk kunjungan bersama RM SME &amp; RM FT guna memperdalam relationship funding.</div>`);
   }
 
   // Product cross-sell opportunities are only pushed for accounts that are
@@ -1897,30 +1869,23 @@ window.selectOpp = selectOpp;
 $('oppSearch').addEventListener('input', () => { if(State.activeOpp) selectOpp(State.activeOpp); });
 
 /* ===================================================================
-   PRIORITY VISIT MATRIX (OS × Deposit to Loan)
+   PRIORITAS KUNJUNGAN — Deposit to Loan (two-tier, no matrix)
    ---------------------------------------------------------------
-   Two-stage framework:
-     STEP 1 — Matrix (WHO): relative screening. Baki Debet (OS) vs
-       Deposit to Loan, split at P75 (OS) / fixed 5% threshold (Deposit to Loan) *within the
-       currently scoped/filtered customer set* — these cut-offs are
-       relative, not absolute, and are shown explicitly (with a full
-       distribution table) so the person reading can judge whether a
-       25/75 split is actually meaningful for this data, or skewed.
-     STEP 2 — Opportunity Trigger (WHY): only customers landing in the
-       "Priority 1" quadrant (high OS + low coverage) get checked for an
-       actual business reason to visit (Funding Gap / Merchant Gap, the
-       two trigger signals we can compute from the uploaded data). Only
-       if at least one trigger fires does a Priority-1 customer become a
-       "Priority Visit" — otherwise it's downgraded to "Review" so the
-       matrix alone never plays final judge.
+   Deposit to Loan now uses a FIXED policy threshold (<5% vs ≥5%), not a
+   portfolio percentile — so a 2x2 matrix built from two relative cut-offs
+   no longer makes sense (one axis isn't relative anymore). The model is
+   simpler instead:
+     1. Split into two groups by Deposit to Loan: "Perlu Kunjungan" (<5%)
+        vs "Sehat" (≥5%).
+     2. Within "Perlu Kunjungan", rank by OS (Baki Debet) descending — OS
+        is used purely to ORDER priority within that group, not as a
+        second classification cut-off.
    ================================================================= */
 const QUAD_DEFS = {
-  p1:       {quadName:'Priority 1', status:'Visit',    label:'VISIT',    emoji:'🔴', sub:'OS tinggi + Deposit to Loan rendah. Nasabah punya exposure besar, tetapi funding relationship relatif rendah. Fokus utama kunjungan.', badgeCls:'k-5'},
-  maintain: {quadName:'Priority 2', status:'Maintain', label:'MAINTAIN', emoji:'🟠', sub:'OS tinggi + Deposit to Loan tinggi. Nasabah bernilai tinggi dan relationship sudah kuat. Bukan berarti tidak perlu dikunjungi, tapi fokusnya menjaga relationship dan mencari deepening opportunity.', badgeCls:'k-3'},
-  monitor:  {quadName:'Priority 3', status:'Develop',  label:'DEVELOP',  emoji:'🟡', sub:'OS rendah + Deposit to Loan rendah. Relationship masih rendah, tetapi exposure relatif kecil. Dikembangkan berdasarkan opportunity yang ditemukan, bukan prioritas utama kunjungan.', badgeCls:'k-2'},
-  stable:   {quadName:'Priority 4', status:'Monitor',  label:'MONITOR',  emoji:'🟢', sub:'OS rendah + Deposit to Loan tinggi. Exposure relatif kecil dan relationship sudah cukup baik. Monitoring/maintain, bukan target utama kunjungan.', badgeCls:'k-1'},
+  needsVisit: {label:'Perlu Kunjungan', emoji:'🔴', color:'#d64545', badgeCls:'k-5', sub:'Deposit to Loan di bawah threshold — funding relationship masih rendah dibanding OS pinjaman. Diurutkan dari OS terbesar sebagai prioritas kunjungan utama.'},
+  sehat:      {label:'Sehat',           emoji:'🟢', color:'#0a9d6e', badgeCls:'k-1', sub:'Deposit to Loan sudah di atas threshold — funding relationship sudah sehat. Fokus maintain & deepen relationship, bukan prioritas kunjungan utama.'},
 };
-const QUAD_COLOR = {p1:'#d64545', maintain:'#e07b1f', monitor:'#d69a12', stable:'#0a9d6e'};
+const QUAD_COLOR = {needsVisit:'#d64545', sehat:'#0a9d6e'};
 
 function percentile(sortedArr, p){
   if(!sortedArr.length) return 0;
@@ -1932,43 +1897,36 @@ function percentile(sortedArr, p){
 
 function computePriorityData(){
   // Clear any stale tags from a previous (differently-scoped) computation first,
-  // so a customer who falls out of scope doesn't keep an old quadrant label.
-  State.customers.forEach(c => { c.priorityQuad = null; c.priorityStatus = null; });
+  // so a customer who falls out of scope doesn't keep an old status label.
+  State.customers.forEach(c => { c.priorityQuad = null; });
 
   const custs = getScopedCustomers().filter(c => c.totalBakiDebet > 0);
   const osArr = custs.map(c => c.totalBakiDebet).sort((a,b)=>a-b);
   const covArr = custs.map(c => c.fundingCoverage ?? 0).sort((a,b)=>a-b);
-  const p75OS_auto = percentile(osArr, 75);
-  // Deposit to Loan cut-off is now a FIXED policy threshold (<5% vs ≥5%), not
-  // a portfolio percentile — it no longer moves depending on which branch/RM
-  // scope happens to be selected, so "low DTL" always means the same thing.
-  const COV_FIXED_THRESHOLD = 0.05;
-  // Manual override (from the "Ambang Manual" inputs) replaces either default
-  // when set — the OS side still supports a manual floor for when the P75
-  // percentile split isn't meaningful for a skewed distribution; the DTL side
-  // supports overriding the fixed 5% policy threshold for a specific focus.
-  const ov = State.priorityOverride || {os:null, cov:null};
-  const p75OS = (ov.os != null && !isNaN(ov.os)) ? ov.os : p75OS_auto;
+  const COV_FIXED_THRESHOLD = 0.05; // Deposit to Loan policy threshold: <5% vs ≥5%.
+  const ov = State.priorityOverride || {cov:null};
   const p25Cov = (ov.cov != null && !isNaN(ov.cov)) ? ov.cov/100 : COV_FIXED_THRESHOLD;
-  const usingOverride = (ov.os != null && !isNaN(ov.os)) || (ov.cov != null && !isNaN(ov.cov));
-  const distOS = {min:osArr[0]||0, p25:percentile(osArr,25), median:percentile(osArr,50), p75:p75OS_auto, max:osArr[osArr.length-1]||0};
+  const usingOverride = ov.cov != null && !isNaN(ov.cov);
+  const distOS = {min:osArr[0]||0, p25:percentile(osArr,25), median:percentile(osArr,50), p75:percentile(osArr,75), max:osArr[osArr.length-1]||0};
   const distCov = {min:covArr[0]||0, p25:percentile(covArr,25), median:percentile(covArr,50), p75:percentile(covArr,75), max:covArr[covArr.length-1]||0};
 
   const list = custs.map(c => {
     const cov = c.fundingCoverage ?? 0;
-    const highOS = c.totalBakiDebet >= p75OS;
-    const lowCov = cov < p25Cov;
-    const quad = highOS && lowCov ? 'p1' : highOS ? 'maintain' : lowCov ? 'monitor' : 'stable';
+    const quad = cov < p25Cov ? 'needsVisit' : 'sehat';
     // Tag the customer object itself so the per-customer detail card (Customer
-    // 360) can reference its quadrant for the Joint OTS recommendation logic.
+    // 360) can reference its status for the Joint OTS recommendation logic.
     c.priorityQuad = quad;
     return {c, cov, quad};
+  }).sort((a,b) => {
+    // "Perlu Kunjungan" group first, then "Sehat"; within each, biggest OS first.
+    if(a.quad !== b.quad) return a.quad === 'needsVisit' ? -1 : 1;
+    return b.c.totalBakiDebet - a.c.totalBakiDebet;
   });
 
-  const quadCounts = {p1:0, maintain:0, monitor:0, stable:0};
+  const quadCounts = {needsVisit:0, sehat:0};
   list.forEach(r => quadCounts[r.quad]++);
 
-  State.priority = {list, p75OS, p25Cov, distOS, distCov, quadCounts, usingOverride};
+  State.priority = {list, p25Cov, distOS, distCov, quadCounts, usingOverride};
 }
 
 function renderPriorityDist(){
@@ -1992,9 +1950,10 @@ function renderPriorityQuadGrid(){
     const count = quadCounts[q] || 0;
     const isEmpty = count === 0;
     return `
-      <div class="opp-card ${isEmpty?'disabled':''}" data-quad="${q}" onclick="${isEmpty?'':`selectPriorityQuad('${q}')`}" style="border-left:4px solid ${QUAD_COLOR[q]}">
-        <div class="opp-icon" style="background:${QUAD_COLOR[q]};color:#fff">${def.emoji} ${escapeHtml(def.label)}</div>
+      <div class="opp-card ${isEmpty?'disabled':''}" data-quad="${q}" onclick="${isEmpty?'':`selectPriorityQuad('${q}')`}" style="border-left:4px solid ${def.color}">
+        <div class="opp-icon" style="background:${def.color};color:#fff">${def.emoji} ${escapeHtml(def.label)}</div>
         <div class="opp-count">${count}</div>
+        <div class="opp-sub">${def.sub}</div>
       </div>
     `;
   }).join('');
@@ -2013,13 +1972,9 @@ function renderPriorityTable(){
   let rows = State.priority.list;
   if(State.activePriorityQuad) rows = rows.filter(r => r.quad === State.activePriorityQuad);
   if(q) rows = rows.filter(r => `${r.c.nama} ${r.c.cif}`.toLowerCase().includes(q));
-  const quadOrder = {p1:0, maintain:1, monitor:2, stable:3};
-  rows = rows.slice().sort((a,b) => {
-    const oa = quadOrder[a.quad] ?? 4, ob = quadOrder[b.quad] ?? 4;
-    if(oa !== ob) return oa - ob;
-    return b.c.totalBakiDebet - a.c.totalBakiDebet;
-  });
-  const activeQuadLabel = State.activePriorityQuad ? ` · kuadran: ${QUAD_DEFS[State.activePriorityQuad].label}` : '';
+  // Base order (needsVisit first, then OS desc) is already set in computePriorityData;
+  // just keep it stable here rather than re-deriving a different order.
+  const activeQuadLabel = State.activePriorityQuad ? ` · status: ${QUAD_DEFS[State.activePriorityQuad].label}` : '';
   const searchLabel = q ? ` · pencarian: "${escapeHtml(q)}"` : '';
   $('priorityCounter').textContent = `Menampilkan ${rows.length} dari ${State.priority.list.length} nasabah${activeQuadLabel}${searchLabel}`;
   $('priorityBody').innerHTML = rows.map(r => `
@@ -2027,7 +1982,7 @@ function renderPriorityTable(){
       <td><strong>${escapeHtml(r.c.nama)}</strong></td>
       <td class="num">${fmtRupiah(r.c.totalBakiDebet)}</td>
       <td class="num">${(r.cov*100).toFixed(1)}%</td>
-      <td><span class="badge-pill ${QUAD_DEFS[r.quad].badgeCls}">${QUAD_DEFS[r.quad].label}</span></td>
+      <td><span class="badge-pill ${QUAD_DEFS[r.quad].badgeCls}">${QUAD_DEFS[r.quad].emoji} ${QUAD_DEFS[r.quad].label}</span></td>
       <td>${escapeHtml(cleanPn(r.c.loans[0]?.pnPengelola))}</td>
       <td>${escapeHtml(r.c.rmFundingList && r.c.rmFundingList.length ? r.c.rmFundingList.join(', ') : '-')}</td>
     </tr>
@@ -2035,12 +1990,10 @@ function renderPriorityTable(){
 }
 
 
-/* Rendered as plain SVG rather than a Chart.js canvas. This widget kept coming
-   up blank on the live deployment even after fixing the tab-visibility timing
-   (Chart.js canvases can be finicky about container sizing across browsers/
-   deployments in ways that are hard to debug remotely). Static SVG has none
-   of that: it draws correctly the instant it's inserted into the DOM, whether
-   or not its tab is visible yet, with zero dependency on canvas measurement. */
+/* Rendered as plain SVG rather than a Chart.js canvas — draws correctly the
+   instant it's inserted into the DOM regardless of tab-visibility timing.
+   Only ONE cutoff line now (horizontal, at the Deposit to Loan threshold)
+   since OS no longer classifies anything, just orders the priority list. */
 function renderPriorityChart(){
   const p = State.priority;
   const wrap = $('priorityScatterWrap');
@@ -2052,7 +2005,7 @@ function renderPriorityChart(){
   const W = 900, H = 380;
   const padL = 80, padR = 20, padT = 20, padB = 55;
   const plotW = W - padL - padR, plotH = H - padT - padB;
-  const maxOS = Math.max(...p.list.map(r=>r.c.totalBakiDebet), p.p75OS, 1) * 1.05;
+  const maxOS = Math.max(...p.list.map(r=>r.c.totalBakiDebet), 1) * 1.05;
   const maxCov = Math.max(...p.list.map(r=>r.cov*100), p.p25Cov*100, 10) * 1.1;
 
   const xPix = os => padL + (os/maxOS) * plotW;
@@ -2069,9 +2022,7 @@ function renderPriorityChart(){
   const xLabels = xTicks.map(t => `<text x="${xPix(t)}" y="${padT+plotH+18}" font-size="10.5" fill="#5a7691" text-anchor="middle">${(t/1e6).toFixed(0)}jt</text>`).join('');
   const yLabels = yTicks.map(t => `<text x="${padL-10}" y="${yPix(t)+4}" font-size="10.5" fill="#5a7691" text-anchor="end">${t.toFixed(0)}%</text>`).join('');
 
-  const cutoffX = `<line x1="${xPix(p.p75OS)}" y1="${padT}" x2="${xPix(p.p75OS)}" y2="${padT+plotH}" stroke="#8ba6bd" stroke-width="1.5" stroke-dasharray="6,4"/>`;
   const cutoffY = `<line x1="${padL}" y1="${yPix(p.p25Cov*100)}" x2="${padL+plotW}" y2="${yPix(p.p25Cov*100)}" stroke="#8ba6bd" stroke-width="1.5" stroke-dasharray="6,4"/>`;
-  const cutoffXLabel = `<text x="${Math.min(xPix(p.p75OS)+6, padL+plotW-4)}" y="${padT+12}" font-size="10.5" fill="#5a7691" font-weight="700">P75 OS: ${fmtRupiah(p.p75OS)}</text>`;
   const cutoffYLabel = `<text x="${padL+plotW-4}" y="${yPix(p.p25Cov*100)-6}" font-size="10.5" fill="#5a7691" font-weight="700" text-anchor="end">Ambang Deposit to Loan: ${(p.p25Cov*100).toFixed(1)}%</text>`;
 
   const points = p.list.map(r => {
@@ -2092,7 +2043,7 @@ function renderPriorityChart(){
   `;
 
   wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:560px;display:block" xmlns="http://www.w3.org/2000/svg">
-    ${gridLines}${axisLines}${cutoffX}${cutoffY}${points}${xLabels}${yLabels}${axisTitles}${cutoffXLabel}${cutoffYLabel}
+    ${gridLines}${axisLines}${cutoffY}${points}${xLabels}${yLabels}${axisTitles}${cutoffYLabel}
   </svg>`;
 
   // Custom tooltip instead of the native SVG <title> element — browser-native
@@ -2130,33 +2081,24 @@ function renderPriorityTab(){
   renderPriorityChart();
   State.activePriorityQuad = null;
   renderPriorityTable();
-  $('badgePriority').textContent = State.priority.quadCounts.p1;
+  $('badgePriority').textContent = State.priority.quadCounts.needsVisit;
 
   const p = State.priority;
   $('priorityTableHint').textContent =
-    `Sebaran kuadran: ${QUAD_DEFS.p1.label} = ${p.quadCounts.p1}, ${QUAD_DEFS.maintain.label} = ${p.quadCounts.maintain}, ${QUAD_DEFS.monitor.label} = ${p.quadCounts.monitor}, ${QUAD_DEFS.stable.label} = ${p.quadCounts.stable} nasabah. ` +
-    `Kalau salah satu kuadran mendominasi (misalnya hampir semua "${QUAD_DEFS.stable.label}"), itu tandanya distribusi OS/Deposit to Loan di scope ini skewed — coba isi threshold manual di atas dengan angka yang lebih masuk akal untuk data kamu.`;
+    `${QUAD_DEFS.needsVisit.label} = ${p.quadCounts.needsVisit} nasabah, ${QUAD_DEFS.sehat.label} = ${p.quadCounts.sehat} nasabah. ` +
+    `Daftar di bawah diurutkan: "${QUAD_DEFS.needsVisit.label}" duluan (dari OS terbesar), baru "${QUAD_DEFS.sehat.label}".`;
 }
 
-/* Makes it explicit whether the matrix is currently running on the automatic
-   portfolio percentile (P75/P25) or on a manual threshold the person typed
-   in — so a different quadrant split never looks unexplained. */
-/* Makes it explicit whether each axis is currently running on its default
-   basis (OS: P75 portfolio percentile; Deposit to Loan: fixed 5% policy
-   threshold) or a manual override the person typed in — since the two axes
-   now have different kinds of defaults, each is labeled independently
-   instead of one blanket "auto vs manual" badge for the whole card. */
+/* Makes explicit whether the Deposit to Loan threshold is currently the
+   default fixed 5% or a manual override. */
 function renderPriorityBasisCard(){
   const p = State.priority;
-  const ov = State.priorityOverride || {};
-  const osIsManual = ov.os != null && !isNaN(ov.os);
-  const covIsManual = ov.cov != null && !isNaN(ov.cov);
   $('priorityBasisContent').innerHTML = `
-    <span class="label-tag">Priority Matrix</span>
-    <div class="cname" style="font-size:16px">Basis Threshold</div>
+    <span class="label-tag">Threshold Deposit to Loan</span>
+    <div class="cname" style="font-size:16px">${p.usingOverride ? 'Manual' : 'Default Tetap'}: &lt; ${(p.p25Cov*100).toFixed(1)}%</div>
     <div class="customer-hero-grid" style="margin-top:10px">
-      <div><div class="f-label">Ambang OS — ${osIsManual?'Manual':'P75 Otomatis (persentil portfolio)'}</div><div class="f-value">OS ≥ ${fmtRupiah(p.p75OS)}</div></div>
-      <div><div class="f-label">Ambang Deposit to Loan — ${covIsManual?'Manual':'Threshold Tetap'}</div><div class="f-value">Deposit to Loan &lt; ${(p.p25Cov*100).toFixed(1)}%</div></div>
+      <div><div class="f-label">Perlu Kunjungan</div><div class="f-value">Deposit to Loan &lt; ${(p.p25Cov*100).toFixed(1)}%, diurutkan OS terbesar</div></div>
+      <div><div class="f-label">Sehat</div><div class="f-value">Deposit to Loan ≥ ${(p.p25Cov*100).toFixed(1)}%</div></div>
     </div>
   `;
 }
@@ -2168,21 +2110,16 @@ $('btnClearPriorityFilter').addEventListener('click', () => {
   renderPriorityTable();
 });
 $('btnApplyPriorityOverride').addEventListener('click', () => {
-  const osVal = $('priorityOsOverride').value;
   const covVal = $('priorityCovOverride').value;
-  State.priorityOverride = {
-    os: osVal !== '' ? Number(osVal) : null,
-    cov: covVal !== '' ? Number(covVal) : null,
-  };
+  State.priorityOverride = { cov: covVal !== '' ? Number(covVal) : null };
   renderPriorityTab();
-  showToast('Ambang manual diterapkan ke matrix.', 'success');
+  showToast('Ambang Deposit to Loan manual diterapkan.', 'success');
 });
 $('btnResetPriorityOverride').addEventListener('click', () => {
-  $('priorityOsOverride').value = '';
   $('priorityCovOverride').value = '';
-  State.priorityOverride = {os:null, cov:null};
+  State.priorityOverride = {cov:null};
   renderPriorityTab();
-  showToast('Kembali ke threshold default (OS: P75 otomatis, Deposit to Loan: 5%).', 'info');
+  showToast('Kembali ke threshold default Deposit to Loan (5%).', 'info');
 });
 
 /* ===================================================================

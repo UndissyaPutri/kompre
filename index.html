@@ -650,7 +650,7 @@ table.data-table td.empty{text-align:center}
         </div>
         <div class="panel-body">
           <div class="info-banner">
-            <strong>Pendekatannya sekarang bukan matrix</strong> — Deposit to Loan pakai threshold tetap (bukan persentil portfolio), jadi nasabah cukup dibagi 2: <strong>Perlu Kunjungan</strong> (Deposit to Loan &lt; 5%) dan <strong>Sehat</strong> (≥ 5%). Di dalam grup "Perlu Kunjungan", nasabah diurutkan dari <strong>OS (Baki Debet) terbesar</strong> — karena semakin besar OS dengan funding yang minim, semakin besar juga relationship gap yang perlu digarap duluan.
+            <strong>Pendekatannya sekarang bukan matrix</strong> — Deposit to Loan pakai threshold tetap (bukan persentil portfolio), jadi nasabah cukup dibagi 2: <strong>Perlu Kunjungan</strong> (Deposit to Loan &lt; 5%) dan <strong>Sehat</strong> (≥ 5%). Di dalam grup "Perlu Kunjungan", nasabah diurutkan dari <strong>OS (Baki Debet) terbesar</strong> — karena semakin besar OS dengan funding yang minim, semakin besar juga relationship gap yang perlu digarap duluan. Nasabah dengan OS di bawah Rp 1 juta tidak diikutkan di sini (rasio Deposit to Loan-nya jadi tidak bermakna kalau dibagi angka mendekati nol, dan eksposurnya memang terlalu kecil untuk jadi prioritas kunjungan) — data mereka tetap utuh di tab lain.
           </div>
 
           <div class="panel" style="margin-bottom:18px;border-color:var(--brand-mid)">
@@ -675,12 +675,6 @@ table.data-table td.empty{text-align:center}
 
           <div class="detail-section-title">Ringkasan: Perlu Kunjungan vs Sehat</div>
           <div class="opp-grid" id="priorityQuadGrid"></div>
-
-          <div class="chart-card" style="margin-bottom:18px;position:relative">
-            <h3>Sebaran Nasabah — Baki Debet (OS) vs Deposit to Loan</h3>
-            <div id="priorityScatterWrap" style="width:100%;overflow-x:auto"></div>
-            <div id="priorityTooltip" style="position:fixed;pointer-events:none;display:none;z-index:1000;background:var(--brand-darker);color:#fff;padding:7px 11px;border-radius:6px;font-size:12px;line-height:1.5;box-shadow:0 4px 14px rgba(0,0,0,.3);white-space:nowrap"></div>
-          </div>
 
           <div class="detail-section-title">Daftar Prioritas Kunjungan</div>
           <div class="upload-hint" style="margin-bottom:8px" id="priorityTableHint"></div>
@@ -1896,7 +1890,15 @@ function computePriorityData(){
   // so a customer who falls out of scope doesn't keep an old status label.
   State.customers.forEach(c => { c.priorityQuad = null; });
 
-  const custs = getScopedCustomers().filter(c => c.totalBakiDebet > 0);
+  // Excludes near-zero OS (not just literally zero) — a nearly-paid-off loan
+  // (e.g. Rp 9,456 outstanding) makes Deposit to Loan explode toward infinity
+  // once you divide by a denominator that small, and such a customer isn't a
+  // meaningful "needs visit" case either way (their exposure is negligible
+  // regardless of the ratio). This only affects Prioritas Kunjungan — the
+  // customer's real data is untouched everywhere else in the app (Ringkasan,
+  // Customer 360, stats, exports all still include them normally).
+  const MIN_OS_FOR_PRIORITY = 1000000; // Rp 1 juta
+  const custs = getScopedCustomers().filter(c => c.totalBakiDebet >= MIN_OS_FOR_PRIORITY);
   const osArr = custs.map(c => c.totalBakiDebet).sort((a,b)=>a-b);
   const covArr = custs.map(c => c.fundingCoverage ?? 0).sort((a,b)=>a-b);
   const COV_FIXED_THRESHOLD = 0.05; // Deposit to Loan policy threshold: <5% vs ≥5%.
@@ -1974,102 +1976,11 @@ function renderPriorityTable(){
 }
 
 
-/* Rendered as plain SVG rather than a Chart.js canvas — draws correctly the
-   instant it's inserted into the DOM regardless of tab-visibility timing.
-   Only ONE cutoff line now (horizontal, at the Deposit to Loan threshold)
-   since OS no longer classifies anything, just orders the priority list. */
-function renderPriorityChart(){
-  const p = State.priority;
-  const wrap = $('priorityScatterWrap');
-  if(!p.list.length){
-    wrap.innerHTML = '<div class="empty">Tidak ada nasabah dengan Baki Debet aktif pada scope ini.</div>';
-    return;
-  }
-
-  const W = 900, H = 380;
-  const padL = 80, padR = 20, padT = 20, padB = 55;
-  const plotW = W - padL - padR, plotH = H - padT - padB;
-  const maxOS = Math.max(...p.list.map(r=>r.c.totalBakiDebet), 1) * 1.05;
-  const maxCov = Math.max(...p.list.map(r=>r.cov*100), p.p25Cov*100, 10) * 1.1;
-
-  const xPix = os => padL + (os/maxOS) * plotW;
-  const yPix = cov => padT + (1 - cov/maxCov) * plotH;
-
-  const xTicks = [0,1,2,3,4].map(i => maxOS * i/4);
-  const yTicks = [0,1,2,3,4].map(i => maxCov * i/4);
-
-  const gridLines = [
-    ...xTicks.map(t => `<line x1="${xPix(t)}" y1="${padT}" x2="${xPix(t)}" y2="${padT+plotH}" stroke="#eef1f4" stroke-width="1"/>`),
-    ...yTicks.map(t => `<line x1="${padL}" y1="${yPix(t)}" x2="${padL+plotW}" y2="${yPix(t)}" stroke="#eef1f4" stroke-width="1"/>`),
-  ].join('');
-
-  const xLabels = xTicks.map(t => `<text x="${xPix(t)}" y="${padT+plotH+18}" font-size="10.5" fill="#5a7691" text-anchor="middle">${(t/1e6).toFixed(0)}jt</text>`).join('');
-  const yLabels = yTicks.map(t => `<text x="${padL-10}" y="${yPix(t)+4}" font-size="10.5" fill="#5a7691" text-anchor="end">${t.toFixed(0)}%</text>`).join('');
-
-  const cutoffY = `<line x1="${padL}" y1="${yPix(p.p25Cov*100)}" x2="${padL+plotW}" y2="${yPix(p.p25Cov*100)}" stroke="#8ba6bd" stroke-width="1.5" stroke-dasharray="6,4"/>`;
-  const cutoffYLabel = `<text x="${padL+plotW-4}" y="${yPix(p.p25Cov*100)-6}" font-size="10.5" fill="#5a7691" font-weight="700" text-anchor="end">Ambang Deposit to Loan: ${(p.p25Cov*100).toFixed(1)}%</text>`;
-
-  // Cap the number of plotted points for very large portfolios — thousands of
-  // individual dots is both slow to render and unreadable (overplotting)
-  // anyway. Since p.list is already sorted "Perlu Kunjungan" first then by
-  // OS descending, capping just keeps the most relevant points.
-  const SCATTER_MAX_POINTS = 800;
-  const plottedList = p.list.length > SCATTER_MAX_POINTS ? p.list.slice(0, SCATTER_MAX_POINTS) : p.list;
-  const points = plottedList.map(r => {
-    const cx = xPix(r.c.totalBakiDebet), cy = yPix(r.cov*100);
-    const color = QUAD_COLOR[r.quad] || '#8ba6bd';
-    const tip = `${r.c.nama}\nOS: ${fmtRupiah(r.c.totalBakiDebet)}\nDeposit to Loan: ${(r.cov*100).toFixed(1)}%`;
-    return `<circle class="priority-pt" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="6" fill="${color}" fill-opacity="0.85" stroke="#fff" stroke-width="1" style="cursor:pointer" data-tip="${escapeHtml(tip)}"></circle>`;
-  }).join('');
-  const sampleNote = p.list.length > SCATTER_MAX_POINTS
-    ? `<text x="${padL+4}" y="${padT+plotH-6}" font-size="10" fill="#8ba6bd">Sample ${SCATTER_MAX_POINTS} dari ${p.list.length} nasabah (diprioritaskan Perlu Kunjungan &amp; OS terbesar)</text>` : '';
-
-  const axisLines = `
-    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+plotH}" stroke="#0b2540" stroke-width="1.2"/>
-    <line x1="${padL}" y1="${padT+plotH}" x2="${padL+plotW}" y2="${padT+plotH}" stroke="#0b2540" stroke-width="1.2"/>
-  `;
-
-  const axisTitles = `
-    <text x="${padL+plotW/2}" y="${H-8}" font-size="12" fill="#0b2540" font-weight="700" text-anchor="middle">Baki Debet / OS (Rp juta)</text>
-    <text x="16" y="${padT+plotH/2}" font-size="12" fill="#0b2540" font-weight="700" text-anchor="middle" transform="rotate(-90 16 ${padT+plotH/2})">Deposit to Loan (%)</text>
-  `;
-
-  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:560px;display:block" xmlns="http://www.w3.org/2000/svg">
-    ${gridLines}${axisLines}${cutoffY}${points}${xLabels}${yLabels}${axisTitles}${cutoffYLabel}${sampleNote}
-  </svg>`;
-
-  // Custom tooltip instead of the native SVG <title> element — browser-native
-  // SVG tooltips are inconsistent (slow to appear, sometimes don't fire at all
-   // on dynamically-inserted SVG), so this gives a reliable, instant, styled
-  // tooltip on hover (and on tap for touch devices) instead.
-  const tooltipEl = $('priorityTooltip');
-  const showTip = (target, clientX, clientY) => {
-    tooltipEl.textContent = '';
-    target.dataset.tip.split('\n').forEach((line, i) => {
-      if(i > 0) tooltipEl.appendChild(document.createElement('br'));
-      tooltipEl.appendChild(document.createTextNode(line));
-    });
-    tooltipEl.style.left = (clientX + 14) + 'px';
-    tooltipEl.style.top = (clientY + 14) + 'px';
-    tooltipEl.style.display = 'block';
-  };
-  const hideTip = () => { tooltipEl.style.display = 'none'; };
-  wrap.onmousemove = e => {
-    const t = e.target.closest('.priority-pt');
-    if(t) showTip(t, e.clientX, e.clientY); else hideTip();
-  };
-  wrap.onmouseleave = hideTip;
-  wrap.onclick = e => {
-    const t = e.target.closest('.priority-pt');
-    if(t) showTip(t, e.clientX, e.clientY); else hideTip();
-  };
-}
 
 function renderPriorityTab(){
   computePriorityData();
   renderPriorityBasisCard();
   renderPriorityQuadGrid();
-  renderPriorityChart();
   State.activePriorityQuad = null;
   renderPriorityTable();
   $('badgePriority').textContent = State.priority.quadCounts.needsVisit;

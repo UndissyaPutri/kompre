@@ -3086,18 +3086,20 @@ function renderCharts(){
 
   // Funding Coverage bucketed by range, so it's obvious at a glance how many
   // customers have little-to-no funding relationship vs. a well-covered one.
-  const covBuckets = {'0%':0, '>0–10%':0, '>10–25%':0, '>25–50%':0, '>50%':0};
+  // 0–10% split into 0–5%/5–10% to line up with the <5%/≥5% threshold above.
+  const covBuckets = {'0%':0, '>0–5%':0, '>5–10%':0, '>10–25%':0, '>25–50%':0, '>50%':0};
   custs.forEach(c => {
     const cov = (c.fundingCoverage ?? 0) * 100;
     if(cov <= 0) covBuckets['0%']++;
-    else if(cov <= 10) covBuckets['>0–10%']++;
+    else if(cov <= 5) covBuckets['>0–5%']++;
+    else if(cov <= 10) covBuckets['>5–10%']++;
     else if(cov <= 25) covBuckets['>10–25%']++;
     else if(cov <= 50) covBuckets['>25–50%']++;
     else covBuckets['>50%']++;
   });
   State.charts.coverageDist = new Chart($('chartCoverageDist'), {
     type:'bar',
-    data:{labels:Object.keys(covBuckets), datasets:[{label:'Jumlah Nasabah', data:Object.values(covBuckets), backgroundColor:['#d64545','#e07b1f','#d69a12','#2e78d6','#0a9d6e'], borderRadius:4}]},
+    data:{labels:Object.keys(covBuckets), datasets:[{label:'Jumlah Nasabah', data:Object.values(covBuckets), backgroundColor:['#d64545','#e0824a','#e07b1f','#d69a12','#2e78d6','#0a9d6e'], borderRadius:4}]},
     options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, ticks:{stepSize:1}}}}
   });
   $('coverageDistBody').innerHTML = Object.keys(covBuckets).map(k =>

@@ -653,15 +653,6 @@ table.data-table td.empty{text-align:center}
             <strong>Pendekatannya sekarang bukan matrix</strong> — Deposit to Loan pakai threshold tetap (bukan persentil portfolio), jadi nasabah cukup dibagi 2: <strong>Perlu Kunjungan</strong> (Deposit to Loan &lt; 5%) dan <strong>Sehat</strong> (≥ 5%). Di dalam grup "Perlu Kunjungan", nasabah diurutkan dari <strong>OS (Baki Debet) terbesar</strong> — karena semakin besar OS dengan funding yang minim, semakin besar juga relationship gap yang perlu digarap duluan.
           </div>
 
-          <div class="detail-section-title">DASAR PENENTUAN THRESHOLD</div>
-          <p style="font-size:12px;color:var(--text-muted);margin:-4px 0 10px;line-height:1.6">Deposit to Loan pakai threshold tetap &lt;5% / ≥5%. Distribusi OS di bawah ini murni konteks skala portfolio — tidak dipakai sebagai cut-off, hanya untuk urutan prioritas di dalam grup "Perlu Kunjungan".</p>
-          <div class="table-wrap" style="margin-bottom:18px">
-            <table class="data-table" style="max-width:560px">
-              <thead><tr><th>Statistik Portfolio</th><th class="num">Baki Debet (OS)</th><th class="num">Deposit to Loan</th></tr></thead>
-              <tbody id="priorityDistBody"></tbody>
-            </table>
-          </div>
-
           <div class="panel" style="margin-bottom:18px;border-color:var(--brand-mid)">
             <div class="panel-header"><div class="panel-title">Atur Threshold Deposit to Loan</div></div>
             <div class="panel-body">
@@ -1602,6 +1593,11 @@ function oppPills(c){
   return `<div class="opp-pill-wrap">${html}</div>`;
 }
 
+/* Only ever renders a capped page of rows at once, not the entire filtered
+   set — for a portfolio with 1,000+ customers, building and inserting one
+   giant table's worth of HTML on every filter change is genuinely slow (the
+   DOM insertion itself, not the filtering logic, dominates the cost at that
+   scale). "Muat Lebih Banyak" grows the page on demand instead. */
 function renderCustTable(){
   const body = $('custBody');
   $('custCounter').textContent = `${State.filteredCust.length} dari ${State.customers.size} nasabah`;
@@ -1929,19 +1925,7 @@ function computePriorityData(){
   State.priority = {list, p25Cov, distOS, distCov, quadCounts, usingOverride};
 }
 
-function renderPriorityDist(){
-  const {distOS, distCov} = State.priority;
-  const rows = [
-    ['Minimum', distOS.min, distCov.min],
-    ['P25 — Lower 25%', distOS.p25, distCov.p25],
-    ['Median', distOS.median, distCov.median],
-    ['P75 — Upper 25% Cut-off', distOS.p75, distCov.p75],
-    ['Maximum', distOS.max, distCov.max],
-  ];
-  $('priorityDistBody').innerHTML = rows.map(([lbl, os, cov]) => `
-    <tr><td>${lbl}</td><td class="num">${fmtRupiah(os)}</td><td class="num">${(cov*100).toFixed(1)}%</td></tr>
-  `).join('');
-}
+
 
 function renderPriorityQuadGrid(){
   const {quadCounts} = State.priority;
@@ -2025,12 +2009,20 @@ function renderPriorityChart(){
   const cutoffY = `<line x1="${padL}" y1="${yPix(p.p25Cov*100)}" x2="${padL+plotW}" y2="${yPix(p.p25Cov*100)}" stroke="#8ba6bd" stroke-width="1.5" stroke-dasharray="6,4"/>`;
   const cutoffYLabel = `<text x="${padL+plotW-4}" y="${yPix(p.p25Cov*100)-6}" font-size="10.5" fill="#5a7691" font-weight="700" text-anchor="end">Ambang Deposit to Loan: ${(p.p25Cov*100).toFixed(1)}%</text>`;
 
-  const points = p.list.map(r => {
+  // Cap the number of plotted points for very large portfolios — thousands of
+  // individual dots is both slow to render and unreadable (overplotting)
+  // anyway. Since p.list is already sorted "Perlu Kunjungan" first then by
+  // OS descending, capping just keeps the most relevant points.
+  const SCATTER_MAX_POINTS = 800;
+  const plottedList = p.list.length > SCATTER_MAX_POINTS ? p.list.slice(0, SCATTER_MAX_POINTS) : p.list;
+  const points = plottedList.map(r => {
     const cx = xPix(r.c.totalBakiDebet), cy = yPix(r.cov*100);
     const color = QUAD_COLOR[r.quad] || '#8ba6bd';
     const tip = `${r.c.nama}\nOS: ${fmtRupiah(r.c.totalBakiDebet)}\nDeposit to Loan: ${(r.cov*100).toFixed(1)}%`;
     return `<circle class="priority-pt" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="6" fill="${color}" fill-opacity="0.85" stroke="#fff" stroke-width="1" style="cursor:pointer" data-tip="${escapeHtml(tip)}"></circle>`;
   }).join('');
+  const sampleNote = p.list.length > SCATTER_MAX_POINTS
+    ? `<text x="${padL+4}" y="${padT+plotH-6}" font-size="10" fill="#8ba6bd">Sample ${SCATTER_MAX_POINTS} dari ${p.list.length} nasabah (diprioritaskan Perlu Kunjungan &amp; OS terbesar)</text>` : '';
 
   const axisLines = `
     <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+plotH}" stroke="#0b2540" stroke-width="1.2"/>
@@ -2043,7 +2035,7 @@ function renderPriorityChart(){
   `;
 
   wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:560px;display:block" xmlns="http://www.w3.org/2000/svg">
-    ${gridLines}${axisLines}${cutoffY}${points}${xLabels}${yLabels}${axisTitles}${cutoffYLabel}
+    ${gridLines}${axisLines}${cutoffY}${points}${xLabels}${yLabels}${axisTitles}${cutoffYLabel}${sampleNote}
   </svg>`;
 
   // Custom tooltip instead of the native SVG <title> element — browser-native
@@ -2075,7 +2067,6 @@ function renderPriorityChart(){
 
 function renderPriorityTab(){
   computePriorityData();
-  renderPriorityDist();
   renderPriorityBasisCard();
   renderPriorityQuadGrid();
   renderPriorityChart();

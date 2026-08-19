@@ -574,6 +574,10 @@ table.data-table td.empty{text-align:center}
             </table>
           </div>
         </div>
+        <div class="chart-card">
+          <h3>Coverage Rendah (&lt;5%) vs Coverage Sehat (≥5%)</h3>
+          <div class="stats-grid" id="coverageThresholdStats"></div>
+        </div>
       </div>
     </div>
 
@@ -829,9 +833,6 @@ table.data-table td.empty{text-align:center}
               </div>
             </div>
 
-            <div class="detail-section-title">🎯 Potensi &amp; Rekomendasi</div>
-            <div id="wsRecommendations" style="margin-bottom:18px"></div>
-
             <div class="stats-grid" id="wsRataRataStats" style="margin-bottom:8px"></div>
             <div class="charts-grid" style="margin-bottom:18px">
               <div class="chart-card">
@@ -843,6 +844,9 @@ table.data-table td.empty{text-align:center}
                 <div class="chart-canvas-wrap" style="height:200px"><canvas id="chartWsPembelian"></canvas></div>
               </div>
             </div>
+
+            <div class="detail-section-title">🎯 Potensi &amp; Rekomendasi</div>
+            <div id="wsRecommendations" style="margin-bottom:18px"></div>
 
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:18px">
               <div>
@@ -3099,6 +3103,20 @@ function renderCharts(){
   $('coverageDistBody').innerHTML = Object.keys(covBuckets).map(k =>
     `<tr><td>${k}</td><td class="num">${covBuckets[k]}</td></tr>`
   ).join('');
+
+  // Simple <5% vs ≥5% coverage split — a coarser, more actionable cut than
+  // the 5-bucket table above: "who's clearly under-covered" vs "who isn't".
+  const lowCov = custs.filter(c => ((c.fundingCoverage ?? 0) * 100) < 5);
+  const healthyCov = custs.filter(c => ((c.fundingCoverage ?? 0) * 100) >= 5);
+  const lowCovOS = lowCov.reduce((s,c)=>s+c.totalBakiDebet,0);
+  const healthyCovOS = healthyCov.reduce((s,c)=>s+c.totalBakiDebet,0);
+  const covCards = [
+    {label:'Nasabah Coverage < 5%', value:lowCov.length, sub:`${custs.length>0?(lowCov.length/custs.length*100).toFixed(1):0}% dari nasabah · Baki Debet ${fmtRupiah(lowCovOS)}`, cls:'danger'},
+    {label:'Nasabah Coverage ≥ 5%', value:healthyCov.length, sub:`${custs.length>0?(healthyCov.length/custs.length*100).toFixed(1):0}% dari nasabah · Baki Debet ${fmtRupiah(healthyCovOS)}`, cls:'success'},
+  ];
+  $('coverageThresholdStats').innerHTML = covCards.map(cd => `
+    <div class="stat-card ${cd.cls}"><div class="stat-label">${cd.label}</div><div class="stat-value">${fmtNum(cd.value)}</div><div class="stat-sub">${cd.sub}</div></div>
+  `).join('');
 }
 
 /* ===================================================================

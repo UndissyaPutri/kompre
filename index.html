@@ -531,6 +531,7 @@ table.data-table td.empty{text-align:center}
       <span class="gf-hint" id="gfHint"></span>
     </div>
 
+    <p style="font-size:11.5px;color:var(--text-soft);margin:-8px 0 8px;font-style:italic">📌 Angka di card ini adalah portfolio sesuai filter yang sedang aktif di atas (Regional/Cabang/Unit Kerja/RM) — bukan total keseluruhan cabang. Kosongkan filter atau klik "Reset Filter" untuk melihat total seluruh nasabah.</p>
     <div class="stats-grid" id="statsGrid"></div>
 
     <div class="tabs no-print" role="tablist">
@@ -559,10 +560,6 @@ table.data-table td.empty{text-align:center}
         <div class="chart-card">
           <h3>Top 10 Nasabah — Total Funding (Tabungan+Giro+Deposito)</h3>
           <div class="chart-canvas-wrap"><canvas id="chartTopFunding"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <h3>Distribusi Segmen Pinjaman</h3>
-          <div class="chart-canvas-wrap"><canvas id="chartSegmen"></canvas></div>
         </div>
         <div class="chart-card">
           <h3>Distribusi Funding Coverage Nasabah</h3>
@@ -1377,8 +1374,7 @@ function buildCustomers(){
     if(c.tabungan.length===0) opp.push('noTabungan');
     if(c.giro.length===0) opp.push('noGiro');
     if(c.deposito.length===0 && c.totalFunding > 50000000) opp.push('noDeposito');
-    if(c.edc.length===0) opp.push('noMerchantEdc');
-    if(c.qris.length===0) opp.push('noMerchantQris');
+    if(c.edc.length===0 || c.qris.length===0) opp.push('noMerchant');
     if(c.worstKol >= 2) opp.push('kolWatch');
     c.opportunities = opp;
     c.oppCount = opp.length;
@@ -1396,8 +1392,7 @@ const OPP_DEFS = {
   noTabungan: {tag:'TABUNGAN', label:'Cross-sell Tabungan', sub:'Nasabah pinjaman belum punya rekening tabungan di BRI.', rec:'Tawarkan pembukaan rekening tabungan sebagai basis penampungan transaksi harian dan monitoring cashflow nasabah.'},
   noGiro:     {tag:'GIRO', label:'Cross-sell Giro', sub:'Nasabah pinjaman belum punya rekening giro.', rec:'Untuk nasabah segmen usaha, giro memudahkan transaksi bisnis dan memperkuat monitoring arus kas pasca pencairan kredit.'},
   noDeposito: {tag:'DEPOSITO', label:'Edukasi Deposito', sub:'Dana funding cukup besar (>Rp 50 juta) namun belum ditempatkan di deposito.', rec:'Dana mengendap besar berpotensi dikonversi menjadi deposito untuk optimalisasi dana pihak ketiga (DPK) dan loyalitas nasabah.'},
-  noMerchantEdc: {tag:'EDC', label:'Cross-sell EDC', sub:'Nasabah belum memiliki merchant EDC.', rec:'Peluang akuisisi merchant EDC untuk nasabah dengan usaha produktif, memperluas fee based income & data transaksi tunai/kartu.'},
-  noMerchantQris: {tag:'QRIS', label:'Cross-sell QRIS', sub:'Nasabah belum memiliki QRIS.', rec:'Peluang akuisisi QRIS — akuisisi ekosistem pembayaran digital yang lebih murah & cepat setup dibanding EDC, cocok untuk usaha skala kecil-menengah.'},
+  noMerchant: {tag:'EDC/QRIS', label:'Ekosistem EDC/QRIS', sub:'Nasabah belum memiliki EDC dan/atau QRIS.', rec:'Peluang akuisisi ekosistem merchant (EDC/QRIS) khususnya untuk nasabah dengan usaha produktif, untuk memperluas fee based income & data transaksi.'},
   kolWatch:   {tag:'KOL', label:'Monitoring Kolektibilitas', sub:'Kolektibilitas terburuk berada di Kol 2 ke atas.', rec:'Perlu monitoring komitmen pembayaran dan penelusuran penyebab tunggakan; koordinasi RM SME & RM FT untuk joint OTS.'},
 };
 
@@ -1839,6 +1834,7 @@ function selectOpp(k){
         <div class="detail-field"><span class="lbl">Baki Debet</span><span class="val">${fmtRupiah(c.totalBakiDebet)}</span></div>
         <div class="detail-field"><span class="lbl">Total Funding</span><span class="val">${fmtRupiah(c.totalFunding)}</span></div>
         <div class="detail-field"><span class="lbl">RM Pengelola Kredit</span><span class="val">${escapeHtml(cleanPn(c.loans[0]?.pnPengelola))}</span></div>
+        ${k==='noMerchant' ? `<div class="detail-field"><span class="lbl">Belum Punya</span><span class="val">${[c.edc.length===0?'EDC':null, c.qris.length===0?'QRIS':null].filter(Boolean).join(' dan ')}</span></div>` : ''}
       </div>
       <div style="margin-top:10px"><button class="btn btn-outline btn-sm" onclick="goToWalletShare('${escapeHtml(c.cif)}')">💰 Cek Wallet Share</button></div>
     </div>
@@ -3035,7 +3031,7 @@ function renderCharts(){
   // wiped out the Wallet Share charts (wsAset/wsLiab/wsPenyaluran/
   // wsPembelian) every single time any filter changed anywhere in the app,
   // forcing an unnecessary rebuild of that tab's charts too.
-  const OVERVIEW_CHART_KEYS = ['kol','produk','topDebet','topFunding','segmen','coverageDist'];
+  const OVERVIEW_CHART_KEYS = ['kol','produk','topDebet','topFunding','coverageDist'];
   OVERVIEW_CHART_KEYS.forEach(k => { if(State.charts[k]){ try{ State.charts[k].destroy(); }catch(e){} delete State.charts[k]; } });
   const custs = getScopedCustomers();
   const CBLUE = ['#0856c3','#2e78d6','#5a9bdf','#a9e1ee','#d4f0f7'];
@@ -3074,14 +3070,6 @@ function renderCharts(){
     type:'bar',
     data:{labels:topFunding.map(c=>c.nama.length>22?c.nama.slice(0,20)+'…':c.nama), datasets:[{label:'Total Funding', data:topFunding.map(c=>c.totalFunding), backgroundColor:'#2e78d6', borderRadius:4}]},
     options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>'Rp '+c.parsed.x.toLocaleString('id-ID')}}}, scales:{x:{ticks:{callback:v=>'Rp '+(v/1e6).toFixed(0)+'jt'}}}}
-  });
-
-  const segMap = {};
-  custs.forEach(c => c.loans.forEach(l => { const s = cleanStr(l.descSegmenLv1)||'Tidak Diketahui'; segMap[s]=(segMap[s]||0)+1; }));
-  State.charts.segmen = new Chart($('chartSegmen'), {
-    type:'pie',
-    data:{labels:Object.keys(segMap), datasets:[{data:Object.values(segMap), backgroundColor:CBLUE.concat(['#063f8f','#7fb8e6']), borderWidth:2, borderColor:'#fff'}]},
-    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{font:{size:11}}}}}
   });
 
   // Funding Coverage bucketed by range, so it's obvious at a glance how many
@@ -3276,8 +3264,7 @@ function generateDummyCustomers(){
     if(c.tabungan.length===0) opp.push('noTabungan');
     if(c.giro.length===0) opp.push('noGiro');
     if(c.deposito.length===0 && c.totalFunding>50000000) opp.push('noDeposito');
-    if(c.edc.length===0) opp.push('noMerchantEdc');
-    if(c.qris.length===0) opp.push('noMerchantQris');
+    if(c.edc.length===0 || c.qris.length===0) opp.push('noMerchant');
     if(c.worstKol>=2) opp.push('kolWatch');
     c.opportunities = opp;
     c.oppCount = opp.length;
